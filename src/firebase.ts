@@ -1,3 +1,8 @@
+// This file is kept for reference but not used.
+// We are using @react-native-firebase/* for Auth/Firestore.
+// If you need web SDK in the future, uncomment and configure below.
+
+/*
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
@@ -25,3 +30,4 @@ const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 
 export { app, auth, db };
+*/

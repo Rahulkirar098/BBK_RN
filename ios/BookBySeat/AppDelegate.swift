@@ -2,6 +2,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import Firebase
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,6 +15,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+       let plist = NSDictionary(contentsOfFile: path),
+       let options = FirebaseOptions(contentsOfFile: path) {
+      FirebaseApp.configure(options: options)
+    } else {
+      print("Error: GoogleService-Info.plist not found or invalid in bundle")
+      FirebaseApp.configure() // Fallback to default behavior
+    }
+    
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

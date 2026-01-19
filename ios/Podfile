@@ -8,10 +8,14 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+use_modular_headers!
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
+else
+  use_frameworks! :linkage => :static
 end
 
 target 'BookBySeat' do
@@ -23,6 +27,9 @@ target 'BookBySeat' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # React Native Firebase recommends static frameworks
+  $RNFirebaseAsStaticFramework = true
+
   post_install do |installer|
     react_native_post_install(
       installer,
@@ -30,5 +37,30 @@ target 'BookBySeat' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Fix glog and nanopb modular headers issue
+    installer.pods_project.targets.each do |target|
+      if target.name == 'glog'
+        target.build_configurations.each do |config|
+          config.build_settings['MODULEMAP_FILE'] = ''
+          config.build_settings['DEFINES_MODULE'] = 'NO'
+        end
+      end
+      if target.name == 'nanopb'
+        target.build_configurations.each do |config|
+          config.build_settings['MODULEMAP_FILE'] = ''
+          config.build_settings['DEFINES_MODULE'] = 'NO'
+        end
+      end
+    end
+
+    # Add GoogleService-Info.plist to app bundle via script phase
+    app_target = installer.pods_project.targets.find { |target| target.name == 'BookBySeat' }
+    if app_target
+      script_phase = app_target.new_shell_script_build_phase('Copy GoogleService-Info.plist')
+      script_phase.shell_script = <<-EOS
+        cp "${SRCROOT}/GoogleService-Info.plist" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/"
+      EOS
+    end
   end
 end

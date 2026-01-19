@@ -5,19 +5,26 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import { getApp } from "@react-native-firebase/app";
+import { getAuth, GoogleAuthProvider, signInWithCredential } from "@react-native-firebase/auth";
+import { getFirestore } from "@react-native-firebase/firestore";
+import firestoreDefault from "@react-native-firebase/firestore";
 
 type UserRole = "RIDER" | "OPERATOR" | "ADMIN";
 
 const AuthScreen = () => {
 //   const navigation = useNavigation<any>();
 //   const route = useRoute<any>();
+
+  const app = getApp();
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
 
   const userRole = "RIDER";
 
@@ -32,24 +39,26 @@ const AuthScreen = () => {
 
   /* ---------------- GOOGLE SIGN-IN ---------------- */
   const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const signInResult: any = await GoogleSignin.signIn();
 
-      await GoogleSignin.hasPlayServices();
+      // Handle both new and old versions of react-native-google-signin
+      let idToken = signInResult.data?.idToken || signInResult.idToken;
+      
+      if (!idToken) {
+        throw new Error('No ID token found');
+      }
 
-      const response:any = await GoogleSignin.signIn();
-
-      const googleCredential =
-        auth.GoogleAuthProvider.credential(response.idToken);
-
-      const result = await auth().signInWithCredential(
-        googleCredential
-      );
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(auth, googleCredential);
 
       const user = result.user;
 
-      const userRef = firestore().collection("users").doc(user.uid);
+      const userRef = firestore.collection("users").doc(user.uid);
       const userSnap:any = await userRef.get();
 
       /* ---------------- ROLE VALIDATION ---------------- */
@@ -73,13 +82,13 @@ const AuthScreen = () => {
         photoURL: user.photoURL,
         role: userRole,
         provider: "google",
-        updatedAt: firestore.FieldValue.serverTimestamp(),
+        updatedAt: firestoreDefault.FieldValue.serverTimestamp(),
       };
 
       await userRef.set(
         {
           ...baseUserData,
-          createdAt: firestore.FieldValue.serverTimestamp(),
+          createdAt: firestoreDefault.FieldValue.serverTimestamp(),
         },
         { merge: true }
       );
@@ -100,6 +109,7 @@ const AuthScreen = () => {
         //   role: userRole.toLowerCase(),
         // });
       }
+      Alert.alert("User Data", JSON.stringify(baseUserData))
     } catch (err: any) {
       console.log(err);
       setError(err?.message || "Google sign-in failed");
