@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "340512668066",
+    "project_id": "bookbyseat-40f83",
+    "storage_bucket": "bookbyseat-40f83.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:340512668066:android:34994adca50abec0645afb",
+        "android_client_info": {
+          "package_name": "com.bookbyseat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "340512668066-ipm1rhie49a41mpa9bh00pbv4dhcbprs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFV0hpi5sTojjrGHoBQr9Xsc835SIVqqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "340512668066-ipm1rhie49a41mpa9bh00pbv4dhcbprs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
