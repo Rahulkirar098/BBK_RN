@@ -6,15 +6,15 @@ import {
   Pressable,
 } from "react-native";
 import { colors } from "../../theme/color";
-// import { useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 
-// type UserRole = "RIDER" | "OPERATOR";
+type UserRole = "RIDER" | "OPERATOR";
 
 const RoleSelectionScreen = () => {
-//   const navigation = useNavigation<any>();
+  const navigation = useNavigation<any>();
 
   const onSelect = (role: "RIDER" | "OPERATOR") => {
-    // navigation.navigate("Auth", { role });
+    navigation.navigate("auth", { role });
   };
 
   return (

@@ -3,6 +3,7 @@ import SplashScreen from './src/pages/auth/SplashScreen';
 import RoleSelectionScreen from './src/pages/auth/RoleSelectionScreen';
 import AuthScreen from './src/pages/auth/AuthScreen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { Navigation } from './src/navigation';
 
 function App() {
 GoogleSignin.configure({
@@ -10,9 +11,7 @@ GoogleSignin.configure({
 });
   return (
     <View style={{ flex: 1}}>
-      {/* <SplashScreen /> */}
-      {/* <RoleSelectionScreen/> */}
-      <AuthScreen/>
+      <Navigation/>
     </View>
   );
 }

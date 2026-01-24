@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -15,12 +15,13 @@ import { getApp } from "@react-native-firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithCredential } from "@react-native-firebase/auth";
 import { getFirestore } from "@react-native-firebase/firestore";
 import firestoreDefault from "@react-native-firebase/firestore";
+import { colors } from "../../theme/color";
 
 type UserRole = "RIDER" | "OPERATOR" | "ADMIN";
 
 const AuthScreen = () => {
-//   const navigation = useNavigation<any>();
-//   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
 
   const app = getApp();
   const auth = getAuth(app);
@@ -34,7 +35,7 @@ const AuthScreen = () => {
   /* ---------------- BACK HANDLER ---------------- */
   const handleBack = () => {
     setError(null);
-    // navigation.navigate("RoleSelection");
+    navigation.navigate("role-selection");
   };
 
   /* ---------------- GOOGLE SIGN-IN ---------------- */
@@ -48,7 +49,7 @@ const AuthScreen = () => {
 
       // Handle both new and old versions of react-native-google-signin
       let idToken = signInResult.data?.idToken || signInResult.idToken;
-      
+
       if (!idToken) {
         throw new Error('No ID token found');
       }
@@ -59,7 +60,7 @@ const AuthScreen = () => {
       const user = result.user;
 
       const userRef = firestore.collection("users").doc(user.uid);
-      const userSnap:any = await userRef.get();
+      const userSnap: any = await userRef.get();
 
       /* ---------------- ROLE VALIDATION ---------------- */
       if (userSnap.exists) {
@@ -123,8 +124,8 @@ const AuthScreen = () => {
     userRole === "RIDER"
       ? "Rider"
       : userRole === "OPERATOR"
-      ? "Operator"
-      : "Admin";
+        ? "Operator"
+        : "Admin";
 
   return (
     <View style={styles.container}>
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
   },

@@ -6,8 +6,10 @@ import {
   Animated,
 } from "react-native";
 import { colors } from "../../theme/color";
+import { useNavigation } from "@react-navigation/native";
 
 const SplashScreen = () => {
+  const navigation = useNavigation<any>();
   const [step, setStep] = useState(0);
 
   // Animated values
@@ -25,11 +27,13 @@ const SplashScreen = () => {
     const t1 = setTimeout(() => setStep(1), 500);
     const t2 = setTimeout(() => setStep(2), 2000);
     const t3 = setTimeout(() => setStep(3), 3500);
+    const t4 = setTimeout(() => navigation.navigate("role-selection"), 4500);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, []);
 
@@ -156,11 +160,11 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 24,
-    backgroundColor: colors.logo,
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 32,
-    shadowColor: colors.logo,
+    shadowColor: colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
