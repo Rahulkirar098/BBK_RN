@@ -29,6 +29,7 @@ import storage from '@react-native-firebase/storage';
 
 import { Input } from '../../components/atoms/input';
 import { Select } from '../../components/atoms/select';
+import { colors } from '../../theme';
 
 /* ---------------- CONSTANTS ---------------- */
 
@@ -235,6 +236,25 @@ const RegisterScreen = () => {
           />
         )}
 
+        {userRole === 'OPERATOR' && (
+          <>
+            <Input
+              placeholder="Agency Name"
+              value={state.agencyName}
+              onChangeText={v =>
+                dispatch({ type: 'SET_FIELD', field: 'agencyName', value: v })
+              }
+            />
+            <Input
+              placeholder="Licence Number"
+              value={state.licenceNumber}
+              onChangeText={v =>
+                dispatch({ type: 'SET_FIELD', field: 'licenceNumber', value: v })
+              }
+            />
+          </>
+        )}
+
         <Select
           label="Language"
           options={languages}
@@ -268,7 +288,7 @@ const RegisterScreen = () => {
 
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           {state.loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.buttonText}>Continue</Text>
           )}
@@ -290,7 +310,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 24,
     padding: 24,
     gap: 14,
@@ -312,14 +332,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   button: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
     marginTop: 12,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '700',
   },
   error: {
