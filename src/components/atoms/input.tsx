@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { colors, verticalScale } from "../../theme";
 
 /* ================= TYPES ================= */
 
@@ -15,6 +16,7 @@ interface InputPropsType {
   placeholder: string;
   value?: string;
   onChangeText?: (text: string) => void;
+  keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
 }
 
 /* ================= INPUT ================= */
@@ -23,17 +25,18 @@ export const Input: React.FC<InputPropsType> = ({
   placeholder,
   value,
   onChangeText,
+  keyboardType
 }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{placeholder}</Text>
-
       <TextInput
         style={styles.input}
         placeholder={placeholder}
         placeholderTextColor="#9CA3AF"
         value={value}
         onChangeText={onChangeText}
+        keyboardType={keyboardType}
       />
     </View>
   );
@@ -98,9 +101,9 @@ export const InputTime = ({
         <Text style={{ color: value ? "#111827" : "#9CA3AF" }}>
           {value
             ? value.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : placeholder}
         </Text>
       </Pressable>
@@ -124,7 +127,7 @@ export const InputTime = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16, // space-y-4
+    marginBottom: verticalScale(5),
   },
 
   label: {
@@ -132,7 +135,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#6B7280", // text-gray-500
     textTransform: "uppercase",
-    marginBottom: 8,
+    marginBottom: verticalScale(5),
     letterSpacing: 1,
   },
 
@@ -143,6 +146,6 @@ const styles = StyleSheet.create({
     borderRadius: 12, // rounded-xl
     fontSize: 14,
     fontWeight: "500",
-    color: "#111827",
+    color: colors.black,
   },
 });

@@ -7,6 +7,7 @@ import {
   Modal,
   FlatList,
 } from "react-native";
+import { verticalScale } from "../../theme";
 
 /* ================= TYPES ================= */
 
@@ -33,7 +34,7 @@ export const Select: React.FC<SelectPropsType> = ({
 
   return (
     <View style={styles.container}>
-      {/* Label */} 
+      {/* Label */}
       <Text style={styles.label}>{label}</Text>
 
       {/* Trigger */}
@@ -78,7 +79,7 @@ export const Select: React.FC<SelectPropsType> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: verticalScale(5),
   },
 
   label: {
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#6B7280", // text-gray-500
     textTransform: "uppercase",
-    marginBottom: 8,
+    marginBottom: verticalScale(5),
     letterSpacing: 1,
   },
 

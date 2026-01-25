@@ -7,6 +7,8 @@ import {
 } from "react-native";
 import { colors } from "../../theme/color";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 const SplashScreen = () => {
   const navigation = useNavigation<any>();
@@ -23,11 +25,17 @@ const SplashScreen = () => {
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const subtitleTranslate = useRef(new Animated.Value(20)).current;
 
+  const checkAuthAndNavigate = async () => {
+    const storedUser = await AsyncStorage.getItem("bbs_user");
+    const nextRoute = storedUser ? "bottom_tab" : "role-selection";
+    navigation.replace(nextRoute);
+  };
+
   useEffect(() => {
     const t1 = setTimeout(() => setStep(1), 500);
     const t2 = setTimeout(() => setStep(2), 2000);
     const t3 = setTimeout(() => setStep(3), 3500);
-    const t4 = setTimeout(() => navigation.navigate("role-selection"), 4500);
+    const t4 = setTimeout(() => checkAuthAndNavigate(), 4500);
 
     return () => {
       clearTimeout(t1);

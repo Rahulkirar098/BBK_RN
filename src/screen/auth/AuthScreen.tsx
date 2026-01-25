@@ -24,6 +24,7 @@ import {
   setDoc,
   serverTimestamp,
 } from "@react-native-firebase/firestore";
+import { colors } from "../../theme";
 
 /* ---------------- TYPES ---------------- */
 
@@ -59,7 +60,7 @@ const AuthScreen = () => {
 
   const handleBack = () => {
     setError(null);
-    navigation.navigate("RoleSelection");
+    navigation.replace("role-selection");
   };
 
   /* ---------------- GOOGLE SIGN-IN ---------------- */
@@ -137,9 +138,7 @@ const AuthScreen = () => {
         userSnap.exists() && !!userSnap.data()?.userProfile;
 
       if (isProfileCompleted) {
-        navigation.replace("register", {
-          role: userRole.toLowerCase(),
-        });
+        navigation.replace("bottom_tab");
       } else {
         navigation.replace("register", {
           role: userRole.toLowerCase(),
@@ -159,8 +158,8 @@ const AuthScreen = () => {
     userRole === "RIDER"
       ? "Rider"
       : userRole === "OPERATOR"
-      ? "Operator"
-      : "Admin";
+        ? "Operator"
+        : "Admin";
 
   /* ---------------- UI ---------------- */
 
@@ -193,7 +192,7 @@ const AuthScreen = () => {
           style={[styles.googleBtn, loading && styles.disabledBtn]}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <>
               <View style={styles.googleIcon}>
@@ -225,7 +224,7 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 420,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.white,
     borderRadius: 24,
     padding: 28,
     elevation: 6,
@@ -275,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
   },
@@ -286,16 +285,16 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.white,
     justifyContent: "center",
     alignItems: "center",
   },
   googleIconText: {
-    color: "#2563EB",
+    color: colors.primary,
     fontWeight: "800",
   },
   googleText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 15,
     fontWeight: "700",
   },
