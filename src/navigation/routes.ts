@@ -1,6 +1,7 @@
-import Splash from '../pages/auth/SplashScreen';
-import RoleSelectionScreen from '../pages/auth/RoleSelectionScreen';
-import AuthScreen from '../pages/auth/AuthScreen';
+import Splash from '../screen/auth/SplashScreen';
+import RoleSelectionScreen from '../screen/auth/RoleSelectionScreen';
+import AuthScreen from '../screen/auth/AuthScreen';
+import Register from '../screen/auth/Register';
 
 export const authNavigation = [
   {
@@ -14,5 +15,9 @@ export const authNavigation = [
   {
     name: 'auth',
     component: AuthScreen,
+  },
+  {
+    name: 'register',
+    component: Register,
   },
 ];

@@ -7,110 +7,144 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { getApp } from "@react-native-firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithCredential } from "@react-native-firebase/auth";
-import { getFirestore } from "@react-native-firebase/firestore";
-import firestoreDefault from "@react-native-firebase/firestore";
-import { colors } from "../../theme/color";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithCredential,
+} from "@react-native-firebase/auth";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+} from "@react-native-firebase/firestore";
+
+/* ---------------- TYPES ---------------- */
 
 type UserRole = "RIDER" | "OPERATOR" | "ADMIN";
+
+type AuthRouteParams = {
+  role: UserRole;
+};
+
+/* ---------------- HELPERS ---------------- */
+
+const cleanObject = (obj: any) =>
+  Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+
+/* ---------------- SCREEN ---------------- */
 
 const AuthScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
 
+  const { role: userRole } = route.params as AuthRouteParams;
+
   const app = getApp();
   const auth = getAuth(app);
   const firestore = getFirestore(app);
-
-  const userRole = "RIDER";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* ---------------- BACK HANDLER ---------------- */
+
   const handleBack = () => {
     setError(null);
-    navigation.navigate("role-selection");
+    navigation.navigate("RoleSelection");
   };
 
   /* ---------------- GOOGLE SIGN-IN ---------------- */
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const signInResult: any = await GoogleSignin.signIn();
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
 
-      // Handle both new and old versions of react-native-google-signin
-      let idToken = signInResult.data?.idToken || signInResult.idToken;
+      const signInResult: any = await GoogleSignin.signIn();
+      const idToken =
+        signInResult?.data?.idToken || signInResult?.idToken;
 
       if (!idToken) {
-        throw new Error('No ID token found');
+        throw new Error("Google sign-in failed (no token)");
       }
 
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-      const result = await signInWithCredential(auth, googleCredential);
-
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(auth, credential);
       const user = result.user;
 
-      const userRef = firestore.collection("users").doc(user.uid);
-      const userSnap: any = await userRef.get();
+      /* ---------------- FIRESTORE ---------------- */
 
-      /* ---------------- ROLE VALIDATION ---------------- */
-      if (userSnap.exists) {
+      const userRef = doc(firestore, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      // Validate role
+      if (userSnap.exists()) {
         const existingRole = userSnap.data()?.role as UserRole;
 
         if (existingRole && existingRole !== userRole) {
           setError(
-            `You are already registered as a ${existingRole}. Please continue as a ${existingRole}.`
+            `You are already registered as a ${existingRole}. Please continue as ${existingRole}.`
           );
           setLoading(false);
           return;
         }
       }
 
-      /* ---------------- SAVE USER DATA ---------------- */
-      const baseUserData = {
+      /* ---------------- SAVE USER ---------------- */
+
+      const baseUserData = cleanObject({
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
         photoURL: user.photoURL,
         role: userRole,
         provider: "google",
-        updatedAt: firestoreDefault.FieldValue.serverTimestamp(),
-      };
+        updatedAt: serverTimestamp(),
+      });
 
-      await userRef.set(
+      await setDoc(
+        userRef,
         {
           ...baseUserData,
-          createdAt: firestoreDefault.FieldValue.serverTimestamp(),
+          createdAt: serverTimestamp(),
         },
         { merge: true }
       );
 
       /* ---------------- LOCAL STORAGE ---------------- */
+
       await AsyncStorage.setItem(
         "bbs_user",
         JSON.stringify(baseUserData)
       );
 
-      /* ---------------- REDIRECT LOGIC ---------------- */
-      const isProfileCompleted = userSnap.exists && !!userSnap.data()?.userProfile;
+      /* ---------------- REDIRECT ---------------- */
+
+      const isProfileCompleted =
+        userSnap.exists() && !!userSnap.data()?.userProfile;
 
       if (isProfileCompleted) {
-        // navigation.replace("Dashboard");
+        navigation.replace("register", {
+          role: userRole.toLowerCase(),
+        });
       } else {
-        // navigation.replace("Register", {
-        //   role: userRole.toLowerCase(),
-        // });
+        navigation.replace("register", {
+          role: userRole.toLowerCase(),
+        });
       }
-      Alert.alert("User Data", JSON.stringify(baseUserData))
     } catch (err: any) {
       console.log(err);
       setError(err?.message || "Google sign-in failed");
@@ -120,28 +154,27 @@ const AuthScreen = () => {
   };
 
   /* ---------------- UI LABEL ---------------- */
+
   const roleLabel =
     userRole === "RIDER"
       ? "Rider"
       : userRole === "OPERATOR"
-        ? "Operator"
-        : "Admin";
+      ? "Operator"
+      : "Admin";
+
+  /* ---------------- UI ---------------- */
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        {/* TITLE */}
         <View style={styles.header}>
-          <Text style={styles.title}>
-            Sign in as {roleLabel}
-          </Text>
+          <Text style={styles.title}>Sign in as {roleLabel}</Text>
           <Text style={styles.subtitle}>
-            Continue with your Google account to access your{" "}
+            Continue with Google to access your{" "}
             {roleLabel.toLowerCase()} dashboard.
           </Text>
         </View>
 
-        {/* ERROR */}
         {error && (
           <>
             <View style={styles.errorBox}>
@@ -149,21 +182,15 @@ const AuthScreen = () => {
             </View>
 
             <Pressable style={styles.backBtn} onPress={handleBack}>
-              <Text style={styles.backText}>
-                ← Back to Role Selection
-              </Text>
+              <Text style={styles.backText}>← Back to Role Selection</Text>
             </Pressable>
           </>
         )}
 
-        {/* GOOGLE BUTTON */}
         <Pressable
           onPress={handleGoogleSignIn}
           disabled={loading}
-          style={[
-            styles.googleBtn,
-            loading && styles.disabledBtn,
-          ]}
+          style={[styles.googleBtn, loading && styles.disabledBtn]}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -184,6 +211,9 @@ const AuthScreen = () => {
 };
 
 export default AuthScreen;
+
+/* ---------------- STYLES ---------------- */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -198,9 +228,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
     padding: 28,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
     elevation: 6,
   },
   header: {
@@ -248,7 +275,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: colors.primary,
+    backgroundColor: "#2563EB",
     paddingVertical: 14,
     borderRadius: 14,
   },

@@ -1,7 +1,7 @@
 import { View } from 'react-native';
-import SplashScreen from './src/pages/auth/SplashScreen';
-import RoleSelectionScreen from './src/pages/auth/RoleSelectionScreen';
-import AuthScreen from './src/pages/auth/AuthScreen';
+import SplashScreen from './src/screen/auth/SplashScreen';
+import RoleSelectionScreen from './src/screen/auth/RoleSelectionScreen';
+import AuthScreen from './src/screen/auth/AuthScreen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Navigation } from './src/navigation';
 
