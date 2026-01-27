@@ -72,3 +72,31 @@ const styles = StyleSheet.create({
     fontSize: horizontalScale(14),
   },
 });
+
+
+interface IconBtnProps {
+  icon: React.ReactNode;
+  onPress?: () => void;
+}
+
+export const IconBtn: React.FC<IconBtnProps> = ({ icon, onPress }) => {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={iconBtnStyles.btn}
+    >
+      {icon}
+    </TouchableOpacity>
+  );
+};
+
+const iconBtnStyles = StyleSheet.create({
+  btn: {
+    padding: 10,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
