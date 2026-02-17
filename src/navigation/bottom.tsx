@@ -5,7 +5,6 @@ import { Text, View, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Dashboard from '../screen/main/Dashboard';
-import OperatorProfile from '../screen/main/operator/OperatorProfile';
 import { colors, horizontalScale, verticalScale } from '../theme';
 
 import {
@@ -13,6 +12,7 @@ import {
   User,
   LayoutDashboard,
 } from 'lucide-react-native';
+import Profile from '../screen/main/Profile';
 
 const Tab = createBottomTabNavigator();
 
@@ -71,7 +71,6 @@ export const BottomNavigation = () => {
     loadRole();
   }, []);
 
-  // Prevent navigator from flashing wrong tabs
   if (loading) return null;
 
   return (
@@ -105,7 +104,7 @@ export const BottomNavigation = () => {
         {/* Profile - always visible */}
         <Tab.Screen
           name="profile"
-          component={OperatorProfile}
+          component={Profile}
           options={{ headerShown: false }}
         />
       </Tab.Navigator>

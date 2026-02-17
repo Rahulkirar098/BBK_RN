@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import OperatorDashboard from './operator/OperatorDashboard';
-import { RiderDashboard } from './rider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RiderProfile from './rider/RiderProfile';
+import OperatorProfile from './operator/OperatorProfile';
 
-const Dashboard = () => {
+const Profile = () => {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +24,7 @@ const Dashboard = () => {
 
   // Prevent navigator from flashing wrong tabs
   if (loading) return null;
-  return role === 'RIDER' ? <RiderDashboard /> : <OperatorDashboard />;
+  return role === 'RIDER' ? <RiderProfile /> : <OperatorProfile />;
 };
 
-export default Dashboard;
+export default Profile;

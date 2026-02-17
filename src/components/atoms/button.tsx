@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, View } from 'react-native';
 import { colors, horizontalScale, verticalScale } from '../../theme';
 
 interface ButtonPropsType {
@@ -12,6 +7,11 @@ interface ButtonPropsType {
   onPress: () => void;
   disabled?: boolean;
   icon?: React.ReactNode;
+}
+
+interface IconBtnProps {
+  icon: React.ReactNode;
+  onPress?: () => void;
 }
 
 export const Button = ({
@@ -25,15 +25,24 @@ export const Button = ({
       activeOpacity={0.7} // hover/active feedback
       onPress={onPress}
       disabled={disabled}
-      style={[
-        styles.button,
-        disabled && styles.disabled,
-      ]}
+      style={[styles.button, disabled && styles.disabled]}
     >
       <View style={styles.content}>
         {icon && <View style={styles.icon}>{icon}</View>}
         <Text style={styles.label}>{label}</Text>
       </View>
+    </TouchableOpacity>
+  );
+};
+
+export const IconBtn: React.FC<IconBtnProps> = ({ icon, onPress }) => {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={iconBtnStyles.btn}
+    >
+      {icon}
     </TouchableOpacity>
   );
 };
@@ -73,30 +82,12 @@ const styles = StyleSheet.create({
   },
 });
 
-
-interface IconBtnProps {
-  icon: React.ReactNode;
-  onPress?: () => void;
-}
-
-export const IconBtn: React.FC<IconBtnProps> = ({ icon, onPress }) => {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={iconBtnStyles.btn}
-    >
-      {icon}
-    </TouchableOpacity>
-  );
-};
-
 const iconBtnStyles = StyleSheet.create({
   btn: {
     padding: 10,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: colors.background,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -2,6 +2,7 @@ import Splash from '../screen/auth/SplashScreen';
 import RoleSelectionScreen from '../screen/auth/RoleSelectionScreen';
 import AuthScreen from '../screen/auth/AuthScreen';
 import Register from '../screen/auth/Register';
+import RiderExplanation from '../screen/main/rider/explanation';
 
 export const authNavigation = [
   {
@@ -19,5 +20,9 @@ export const authNavigation = [
   {
     name: 'register',
     component: Register,
+  },
+  {
+    name: 'explanation',
+    component: RiderExplanation,
   },
 ];

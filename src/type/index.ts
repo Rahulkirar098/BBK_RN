@@ -1,4 +1,5 @@
 export type ModalTab = 'boats' | 'captains';
+export type ActiveStatus = 'SCHEDULE' | 'REQUESTS';
 
 export type Boat = {
   id: string;
@@ -21,23 +22,26 @@ export type Captain = {
 };
 
 export type ModalState = {
-    modalOpen: boolean;
-    tab: ModalTab;
-    boats: Boat[];
-    captains: Captain[];
-    editingBoat: Boat | null;
-    editingCaptain: Captain | null;
-    boatImage: any | null;
-    captainImage: any | null;
+  modalOpen: boolean;
+  tab: ModalTab;
+  boats: Boat[];
+  captains: Captain[];
+  editingBoat: Boat | null;
+  editingCaptain: Captain | null;
+  boatImage: any | null;
+  captainImage: any | null;
 };
 
 export type OperatorProfileData = {
-    companyName: string;
-    tradeLicense: string;
-    taxId: string;
-    address: string;
-    payoutBalance: number;
-    fleetSize: number;
-    activeCaptains: number;
-    complianceStatus: string;
+  companyName: string;
+  tradeLicense: string;
+  taxId: string;
+  address: string;
+  payoutBalance: number;
+  fleetSize: number;
+  activeCaptains: number;
+  complianceStatus: string;
 };
+
+
+export type TimeFilter = 'NOW' | 'TOMORROW' | 'THIS_WEEK';

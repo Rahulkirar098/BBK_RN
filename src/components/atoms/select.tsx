@@ -28,9 +28,7 @@ export const Select: React.FC<SelectPropsType> = ({
 }) => {
   const [visible, setVisible] = useState(false);
 
-  const selectedLabel =
-    options.find((o) => o.value === value)?.label ||
-    `Select ${label}`;
+  const selectedOption = options.find((o) => o.value === value);
 
   return (
     <View style={styles.container}>
@@ -40,33 +38,50 @@ export const Select: React.FC<SelectPropsType> = ({
       {/* Trigger */}
       <Pressable style={styles.input} onPress={() => setVisible(true)}>
         <Text
-          style={{
-            color: value ? "#111827" : "#9CA3AF",
-            fontWeight: "500",
-          }}
+          style={[
+            styles.inputText,
+            !selectedOption && styles.placeholderText,
+          ]}
         >
-          {selectedLabel}
+          {selectedOption?.label || `Select ${label}`}
         </Text>
       </Pressable>
 
-      {/* Modal */}
+      {/* Dropdown Modal */}
       <Modal transparent visible={visible} animationType="fade">
-        <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
+        <Pressable
+          style={styles.overlay}
+          onPress={() => setVisible(false)}
+        >
           <View style={styles.modal}>
             <FlatList
               data={options}
               keyExtractor={(item) => item.value}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={styles.option}
-                  onPress={() => {
-                    onChange(item.value);
-                    setVisible(false);
-                  }}
-                >
-                  <Text style={styles.optionText}>{item.label}</Text>
-                </Pressable>
-              )}
+              renderItem={({ item }) => {
+                const isSelected = item.value === value;
+
+                return (
+                  <Pressable
+                    style={[
+                      styles.option,
+                      isSelected && styles.selectedOption,
+                    ]}
+                    onPress={() => {
+                      onChange(item.value);
+                      setVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        isSelected && styles.selectedText,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              }}
             />
           </View>
         </Pressable>
@@ -79,13 +94,14 @@ export const Select: React.FC<SelectPropsType> = ({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     marginBottom: verticalScale(5),
   },
 
   label: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#6B7280", // text-gray-500
+    color: "#6B7280",
     textTransform: "uppercase",
     marginBottom: verticalScale(5),
     letterSpacing: 1,
@@ -94,8 +110,18 @@ const styles = StyleSheet.create({
   input: {
     width: "100%",
     padding: 12,
-    backgroundColor: "#F9FAFB", // bg-gray-50
-    borderRadius: 12, // rounded-xl
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+  },
+
+  inputText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#111827",
+  },
+
+  placeholderText: {
+    color: "#9CA3AF",
   },
 
   overlay: {
@@ -118,9 +144,18 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F3F4F6",
   },
 
+  selectedOption: {
+    backgroundColor: "#EEF2FF",
+  },
+
   optionText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#111827",
+  },
+
+  selectedText: {
+    color: "#4F46E5",
+    fontWeight: "600",
   },
 });
