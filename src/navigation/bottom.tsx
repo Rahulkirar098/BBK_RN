@@ -7,14 +7,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dashboard from '../screen/main/Dashboard';
 import { colors, horizontalScale, verticalScale } from '../theme';
 
-import {
-  Ticket,
-  User,
-  LayoutDashboard,
-} from 'lucide-react-native';
+import { Ticket, User, LayoutDashboard } from 'lucide-react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
 import Profile from '../screen/main/Profile';
+import { Setting } from '../screen/main/rider/setting';
 
 const Tab = createBottomTabNavigator();
+const NavigateStack = createNativeStackNavigator();
 
 /* ---------------- ICON RESOLVER ---------------- */
 const getTabIcon = (routeName: string) => {
@@ -35,10 +35,7 @@ const renderTabIcon = (routeName: string, focused: boolean) => {
 
   return (
     <View style={styles.tabItem}>
-      <Icon
-        size={24}
-        color={focused ? colors.primary : colors.black}
-      />
+      <Icon size={24} color={focused ? colors.primary : colors.black} />
       <Text
         style={[
           styles.tabLabel,
@@ -81,8 +78,7 @@ export const BottomNavigation = () => {
           tabBarStyle: styles.tabBar,
           tabBarShowLabel: false,
           tabBarHideOnKeyboard: true,
-          tabBarIcon: ({ focused }) =>
-            renderTabIcon(route.name, focused),
+          tabBarIcon: ({ focused }) => renderTabIcon(route.name, focused),
         })}
       >
         {/* Dashboard - always visible */}
@@ -104,7 +100,19 @@ export const BottomNavigation = () => {
         {/* Profile - always visible */}
         <Tab.Screen
           name="profile"
-          component={Profile}
+          component={() => {
+            return (
+              <NavigateStack.Navigator
+                initialRouteName="profile_home"
+                screenOptions={{
+                  headerShown: false,
+                }}
+              >
+                <NavigateStack.Screen name="profile_home" component={Profile} />
+                <NavigateStack.Screen name="setting" component={Setting} />
+              </NavigateStack.Navigator>
+            );
+          }}
           options={{ headerShown: false }}
         />
       </Tab.Navigator>

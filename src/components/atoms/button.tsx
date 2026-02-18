@@ -1,12 +1,20 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, View } from 'react-native';
-import { colors, horizontalScale, verticalScale } from '../../theme';
+import {
+  colors,
+  horizontalScale,
+  verticalScale,
+  typography,
+} from '../../theme';
+import { LogOut } from 'lucide-react-native';
 
 interface ButtonPropsType {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   icon?: React.ReactNode;
+  color?: string;
+  Icon?: any;
 }
 
 interface IconBtnProps {
@@ -31,6 +39,24 @@ export const Button = ({
         {icon && <View style={styles.icon}>{icon}</View>}
         <Text style={styles.label}>{label}</Text>
       </View>
+    </TouchableOpacity>
+  );
+};
+
+export const OutlinedButton = ({
+  label,
+  onPress,
+  Icon,
+  color,
+}: ButtonPropsType) => {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.logoutButton, { borderColor: color }]}
+      activeOpacity={0.8}
+    >
+      <Icon size={16} color={color} />
+      <Text style={[styles.logoutText, { color: color }]}>{label}</Text>
     </TouchableOpacity>
   );
 };
@@ -79,6 +105,26 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '700',
     fontSize: horizontalScale(14),
+  },
+
+  /* ---------- LOGOUT BUTTON ---------- */
+
+  logoutButton: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: horizontalScale(8),
+
+    paddingVertical: verticalScale(14),
+    borderRadius: 14,
+
+    borderWidth: 1,
+    backgroundColor: colors.white,
+  },
+
+  logoutText: {
+    ...typography.cardTitle,
   },
 });
 

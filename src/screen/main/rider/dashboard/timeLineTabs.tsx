@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { colors, typography } from '../../theme';
+import { colors, horizontalScale, typography, verticalScale } from '../../../../theme';
 
 type TimeFilter = 'NOW' | 'TOMORROW' | 'THIS_WEEK';
 
@@ -19,12 +19,7 @@ interface Props {
     thisWeek: string;
   };
 }
-
-export const TimeFilterBar: React.FC<Props> = ({
-  selectedTab,
-  setSelectedTab,
-  t,
-}) => {
+const TimeFilterBar: React.FC<Props> = ({ selectedTab, setSelectedTab, t }) => {
   const tabs: TimeFilter[] = ['NOW', 'TOMORROW', 'THIS_WEEK'];
 
   return (
@@ -67,6 +62,8 @@ export const TimeFilterBar: React.FC<Props> = ({
   );
 };
 
+export default TimeFilterBar;
+
 const styles = StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
@@ -75,15 +72,13 @@ const styles = StyleSheet.create({
   },
 
   tabsContainer: {
-    paddingVertical: 4,
-    paddingRight: 10,
+    gap: horizontalScale(10),
   },
 
   tabButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(10),
     borderRadius: 14,
-    marginRight: 10,
   },
 
   tabText: {
@@ -91,7 +86,7 @@ const styles = StyleSheet.create({
   },
 
   activeTab: {
-    backgroundColor: colors.primary
+    backgroundColor: colors.primary,
   },
 
   inactiveTab: {

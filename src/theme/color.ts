@@ -27,4 +27,13 @@ export const colors = {
   textPrimary: '#111827',
   textSecondary: '#6B7280',
   border: '#E5E7EB',
+
+  // Success
+  success: '#10B981',
+
+  // Error
+  error: '#EF4444',
+
+  // Error Light
+  errorLight: '#FEE2E2',
 };

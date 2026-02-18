@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import RiderProfile from './rider/RiderProfile';
+import { RiderProfile } from './rider/profile';
 import OperatorProfile from './operator/OperatorProfile';
 
 const Profile = () => {

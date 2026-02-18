@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { HelpCircle } from 'lucide-react-native';
-import { colors, typography } from '../../theme';
+import { colors, typography } from '../../../../theme';
 import { StyleSheet } from 'react-native';
 
-export const Header = ({ onPressHelp }: { onPressHelp: () => void }) => {
+const Header = ({ onPressHelp }: { onPressHelp: () => void }) => {
   return (
     <View style={styles.container}>
       <View style={styles.inner}>
@@ -35,20 +35,15 @@ export const Header = ({ onPressHelp }: { onPressHelp: () => void }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
+export default Header;
 
+const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 3,
-    zIndex: 1,
   },
 
   inner: {

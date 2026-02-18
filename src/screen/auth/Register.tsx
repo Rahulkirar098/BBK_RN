@@ -30,16 +30,11 @@ import storage from '@react-native-firebase/storage';
 import { Input } from '../../components/atoms/input';
 import { Select } from '../../components/atoms/select';
 import { colors } from '../../theme';
+import { language } from '../../utils';
 
 /* ---------------- CONSTANTS ---------------- */
 
-const riderSkillLevels = ['beginner', 'Intermediate', 'Advance'] as const;
-
-const languages = [
-  { label: 'English', value: 'EN' },
-  { label: 'Chinese', value: 'CN' },
-  { label: 'Russian', value: 'RU' },
-];
+const riderSkillLevels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
 
 /* ---------------- TYPES ---------------- */
 
@@ -61,7 +56,7 @@ type State = {
 
 const initialState: State = {
   name: '',
-  skillLevel: 'beginner',
+  skillLevel: 'BEGINNER',
   agencyName: '',
   licenceNumber: '',
   language: '',
@@ -159,11 +154,11 @@ const RegisterScreen = () => {
       /* -------- STORAGE (CORRECT WAY) -------- */
 
       const frontRef = storage().ref(
-        `users/${user.uid}/emirates/front-${Date.now()}.jpg`
+        `users/${user.uid}/emirates/front-${Date.now()}.jpg`,
       );
 
       const backRef = storage().ref(
-        `users/${user.uid}/emirates/back-${Date.now()}.jpg`
+        `users/${user.uid}/emirates/back-${Date.now()}.jpg`,
       );
 
       await frontRef.putFile(normalizeUri(emiratesFront.uri));
@@ -189,7 +184,7 @@ const RegisterScreen = () => {
             createdAt: serverTimestamp(),
           },
         },
-        { merge: true }
+        { merge: true },
       );
 
       navigation.replace('bottom_tab');
@@ -249,7 +244,11 @@ const RegisterScreen = () => {
               placeholder="Licence Number"
               value={state.licenceNumber}
               onChangeText={v =>
-                dispatch({ type: 'SET_FIELD', field: 'licenceNumber', value: v })
+                dispatch({
+                  type: 'SET_FIELD',
+                  field: 'licenceNumber',
+                  value: v,
+                })
               }
             />
           </>
@@ -257,7 +256,7 @@ const RegisterScreen = () => {
 
         <Select
           label="Language"
-          options={languages}
+          options={language}
           value={state.language}
           onChange={v =>
             dispatch({ type: 'SET_FIELD', field: 'language', value: v })
@@ -272,7 +271,10 @@ const RegisterScreen = () => {
         </TouchableOpacity>
 
         {state.emiratesFront && (
-          <Image source={{ uri: state.emiratesFront.uri }} style={styles.preview} />
+          <Image
+            source={{ uri: state.emiratesFront.uri }}
+            style={styles.preview}
+          />
         )}
 
         <TouchableOpacity
@@ -283,7 +285,10 @@ const RegisterScreen = () => {
         </TouchableOpacity>
 
         {state.emiratesBack && (
-          <Image source={{ uri: state.emiratesBack.uri }} style={styles.preview} />
+          <Image
+            source={{ uri: state.emiratesBack.uri }}
+            style={styles.preview}
+          />
         )}
 
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>

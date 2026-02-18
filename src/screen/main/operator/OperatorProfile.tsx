@@ -38,6 +38,7 @@ import {
   Button,
   Input,
   Select,
+  OutlinedButton,
 } from '../../../components/atoms';
 
 import {
@@ -613,10 +614,12 @@ const OperatorProfile = () => {
           </View>
         )}
 
-        <TouchableOpacity style={styles.logout} onPress={logout}>
-          <LogOut size={20} color="red" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <OutlinedButton
+          label="Logout"
+          onPress={logout}
+          Icon={LogOut}
+          color={colors.error}
+        />
       </View>
     </SafeAreaView>
   );
@@ -661,7 +664,7 @@ const styles = StyleSheet.create({
 
   modal: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // overlay is OK inline
+    backgroundColor: 'rgba(0,0,0,0.5)',
     padding: horizontalScale(20),
     paddingTop: verticalScale(20),
     justifyContent: 'center',
@@ -710,19 +713,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 10,
     alignSelf: 'center',
-  },
-
-  logout: {
-    marginTop: 32,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  logoutText: {
-    ...typography.sectionTitle,
-    color: colors.orange500,
   },
 
   loaderOverlay: {

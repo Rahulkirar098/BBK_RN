@@ -26,11 +26,11 @@ import {
   IconBtn,
   Stat,
   Empty,
-  SessionCard,
   Select,
   Input,
   Button,
 } from '../../../components/atoms';
+import { SessionCard } from '../../../components/molicules';
 import {
   colors,
   horizontalScale,
@@ -106,63 +106,91 @@ const OperatorDashboard: React.FC = () => {
 
   const validateSlot = () => {
     if (!sessionForm.title) return 'Title required';
+    if (!sessionForm.activity) return 'Activity required';
     if (!sessionForm.boat) return 'Boat required';
     if (!sessionForm.captain) return 'Captain required';
+    if (!sessionForm.date) return 'Date required';
+    if (!sessionForm.time) return 'Time required';
+
+    if (sessionForm.totalSeats <= 0)
+      return 'Total seats must be greater than 0';
+
     if (sessionForm.minRiders > sessionForm.totalSeats)
-      return 'Min riders cannot exceed seats';
+      return 'Min riders cannot exceed total seats';
+
     return null;
   };
 
   const handleSubmitAddSlot = async () => {
+    if (isUploading) return;
+
     const uid = auth.currentUser?.uid;
     if (!uid) return;
 
     const error = validateSlot();
     if (error) {
-      Alert.alert(error);
+      Alert.alert('Validation Error', error);
       return;
     }
 
     try {
       setIsUploading(true);
 
-      let imageUrl = null;
-
-      if (sessionForm.image?.uri) {
-        const ref = storage().ref(`slots/${uid}/${Date.now()}.jpg`);
-        await ref.putFile(sessionForm.image.uri);
-        imageUrl = await ref.getDownloadURL();
-      }
-
+      // ⏰ Merge Date + Time
       const start = new Date(sessionForm.date);
       start.setHours(
         sessionForm.time.getHours(),
         sessionForm.time.getMinutes(),
+        0,
+        0,
       );
 
-      await addDoc(collection(db, 'slots', uid, 'slots'), {
+      const now = new Date();
+      const GRACE = 60 * 1000;
+
+      // 🚫 Prevent past session
+      if (start.getTime() < now.getTime() - GRACE) {
+        Alert.alert('Invalid Time', 'Cannot create a session in the past.');
+        return;
+      }
+
+      let imageUrl: string | null = null;
+
+      // 📤 Upload image (if selected)
+      if (sessionForm.image?.uri) {
+        const imageRef = storage().ref(`slots/${uid}/${Date.now()}.jpg`);
+
+        await imageRef.putFile(sessionForm.image.uri);
+        imageUrl = await imageRef.getDownloadURL();
+      }
+
+      const payload = {
         title: sessionForm.title,
         activity: sessionForm.activity,
         image: imageUrl,
         totalSeats: sessionForm.totalSeats,
         minRidersToConfirm: sessionForm.minRiders,
         pricePerSeat: sessionForm.pricePerSeat,
-        bookedSeats: 0,
         durationMinutes: 120,
-        isRequested: false,
-        requestStatus: 'OPEN',
         boat: sessionForm.boat,
         captain: sessionForm.captain,
         timeStart: Timestamp.fromDate(start),
-        createdAt: serverTimestamp(),
+        date: start.toISOString(),
+        time: start.toISOString(),
+        userId: uid,
+        bookedSeats: 0,
+        isRequested: false,
+        requestStatus: 'OPEN',
         ridersProfile: [],
+        createdAt: serverTimestamp(),
         location: '',
-        //date
-        //time
-        //durationMinutes
-      });
+      };
 
+      await addDoc(collection(db, 'slots', uid, 'slots'), payload);
+
+      // 🔄 Reset form
       setShowAddSession(false);
+
       setSessionForm({
         title: '',
         activity: '',
@@ -177,7 +205,7 @@ const OperatorDashboard: React.FC = () => {
       });
     } catch (e) {
       console.error(e);
-      Alert.alert('Failed to create slot');
+      Alert.alert('Error', 'Failed to save slot');
     } finally {
       setIsUploading(false);
     }
@@ -369,6 +397,7 @@ const OperatorDashboard: React.FC = () => {
       <ScrollView
         style={{ paddingHorizontal: horizontalScale(20) }}
         contentContainerStyle={{ paddingBottom: 120 }}
+        nestedScrollEnabled
       >
         {/* HEADER */}
         <View style={styles.header}>
@@ -576,167 +605,173 @@ const OperatorDashboard: React.FC = () => {
               </View>
             ))
           ))}
+      </ScrollView>
 
-        {/* ADD SESSION MODAL */}
-        <Modal visible={showAddSession} transparent animationType="fade">
-          <View style={styles.overlay}>
-            <View style={styles.modal}>
-              {/* HEADER */}
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>List Available Slot</Text>
-                <TouchableOpacity onPress={handleCloseSlotModal}>
-                  <X size={20} />
+      {/* MOVE MODAL HERE */}
+      <Modal
+        visible={showAddSession}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={handleCloseSlotModal} // 👈 REQUIRED
+      >
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            {/* HEADER */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>List Available Slot</Text>
+              <TouchableOpacity onPress={handleCloseSlotModal}>
+                <X size={20} />
+              </TouchableOpacity>
+            </View>
+
+            {/* BODY */}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* TITLE */}
+              <Input
+                placeholder="Title"
+                value={sessionForm.title}
+                onChangeText={v => handleChangeAddSlot('title', v)}
+              />
+
+              {/* ACTIVITY */}
+              <Select
+                label="Activity"
+                options={AddSlotOptions}
+                value={sessionForm.activity}
+                onChange={v => handleChangeAddSlot('activity', v)}
+              />
+
+              {/* DATE & TIME */}
+              <View style={styles.row}>
+                <TouchableOpacity
+                  style={styles.inputBox}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text>{formatDate(sessionForm.date)}</Text>
                 </TouchableOpacity>
-              </View>
-
-              {/* BODY */}
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {/* TITLE */}
-                <Input
-                  placeholder="Title"
-                  value={sessionForm.title}
-                  onChangeText={v => handleChangeAddSlot('title', v)}
-                />
-
-                {/* ACTIVITY */}
-                <Select
-                  label="Activity"
-                  options={AddSlotOptions}
-                  value={sessionForm.activity}
-                  onChange={v => handleChangeAddSlot('activity', v)}
-                />
-
-                {/* DATE & TIME */}
-                <View style={styles.row}>
-                  <TouchableOpacity
-                    style={styles.inputBox}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Text>{formatDate(sessionForm.date)}</Text>
-                  </TouchableOpacity>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={sessionForm.date}
-                      mode="date"
-                      onChange={(_, d) => {
-                        setShowDatePicker(false);
-                        d && handleChangeAddSlot('date', d);
-                      }}
-                    />
-                  )}
-
-                  {showTimePicker && (
-                    <DateTimePicker
-                      value={sessionForm.time}
-                      mode="time"
-                      onChange={(_, d) => {
-                        setShowTimePicker(false);
-                        d && handleChangeAddSlot('time', d);
-                      }}
-                    />
-                  )}
-
-                  <TouchableOpacity
-                    style={styles.inputBox}
-                    onPress={() => setShowTimePicker(true)}
-                  >
-                    <Text>{formatTime(sessionForm.time)}</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.row}>
-                  {/* BOAT */}
-                  <Select
-                    label="Boat"
-                    options={boatOptions}
-                    value={sessionForm.boat?.id}
-                    onChange={id => {
-                      const boat = boats.find(b => b.id === id);
-                      if (boat) {
-                        handleChangeAddSlot('boat', boat);
-                      }
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={sessionForm.date}
+                    mode="date"
+                    onChange={(_, d) => {
+                      setShowDatePicker(false);
+                      d && handleChangeAddSlot('date', d);
                     }}
-                  />
-
-                  {/* CAPTAIN */}
-                  <Select
-                    label="Captain"
-                    options={captainOptions}
-                    value={sessionForm.captain?.id}
-                    onChange={id => {
-                      const captain = captains.find(c => c.id === id);
-                      if (captain) {
-                        handleChangeAddSlot('captain', captain);
-                      }
-                    }}
-                  />
-                </View>
-
-                {/* IMAGE */}
-                <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
-                  <Text>Select Image</Text>
-                </TouchableOpacity>
-
-                {sessionForm.image?.uri && (
-                  <Image
-                    source={{ uri: sessionForm.image.uri }}
-                    style={styles.image}
                   />
                 )}
 
-                {/* REVENUE FLOOR */}
-                <View style={styles.revenueBox}>
-                  <Text style={styles.revenueTitle}>
-                    Guaranteed Revenue Floor
-                  </Text>
+                {showTimePicker && (
+                  <DateTimePicker
+                    value={sessionForm.time}
+                    mode="time"
+                    onChange={(_, d) => {
+                      setShowTimePicker(false);
+                      d && handleChangeAddSlot('time', d);
+                    }}
+                  />
+                )}
 
-                  <View style={styles.row}>
-                    <TextInput
-                      keyboardType="numeric"
-                      style={styles.number}
-                      placeholder="Seats"
-                      value={String(sessionForm.totalSeats)}
-                      onChangeText={v =>
-                        handleChangeAddSlot('totalSeats', Number(v))
-                      }
-                    />
-                    <TextInput
-                      keyboardType="numeric"
-                      style={styles.number}
-                      placeholder="Min Riders"
-                      value={String(sessionForm.minRiders)}
-                      onChangeText={v =>
-                        handleChangeAddSlot('minRiders', Number(v))
-                      }
-                    />
-                    <TextInput
-                      keyboardType="numeric"
-                      style={styles.number}
-                      placeholder="Price"
-                      value={String(sessionForm.pricePerSeat)}
-                      onChangeText={v =>
-                        handleChangeAddSlot('pricePerSeat', Number(v))
-                      }
-                    />
-                  </View>
+                <TouchableOpacity
+                  style={styles.inputBox}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Text>{formatTime(sessionForm.time)}</Text>
+                </TouchableOpacity>
+              </View>
 
-                  <Text style={styles.revenueText}>
-                    Trip confirms automatically when revenue hits AED{' '}
-                    {sessionForm.minRiders * sessionForm.pricePerSeat}
-                  </Text>
+              <View style={styles.row}>
+                {/* BOAT */}
+                <Select
+                  label="Boat"
+                  options={boatOptions}
+                  value={sessionForm.boat?.id}
+                  onChange={id => {
+                    const boat = boats.find(b => b.id === id);
+                    if (boat) {
+                      handleChangeAddSlot('boat', boat);
+                    }
+                  }}
+                />
+
+                {/* CAPTAIN */}
+                <Select
+                  label="Captain"
+                  options={captainOptions}
+                  value={sessionForm.captain?.id}
+                  onChange={id => {
+                    const captain = captains.find(c => c.id === id);
+                    if (captain) {
+                      handleChangeAddSlot('captain', captain);
+                    }
+                  }}
+                />
+              </View>
+
+              {/* IMAGE */}
+              <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
+                <Text>Select Image</Text>
+              </TouchableOpacity>
+
+              {sessionForm.image?.uri && (
+                <Image
+                  source={{ uri: sessionForm.image.uri }}
+                  style={styles.image}
+                />
+              )}
+
+              {/* REVENUE FLOOR */}
+              <View style={styles.revenueBox}>
+                <Text style={styles.revenueTitle}>
+                  Guaranteed Revenue Floor
+                </Text>
+
+                <View style={styles.row}>
+                  <TextInput
+                    keyboardType="numeric"
+                    style={styles.number}
+                    placeholder="Seats"
+                    value={String(sessionForm.totalSeats)}
+                    onChangeText={v =>
+                      handleChangeAddSlot('totalSeats', Number(v))
+                    }
+                  />
+                  <TextInput
+                    keyboardType="numeric"
+                    style={styles.number}
+                    placeholder="Min Riders"
+                    value={String(sessionForm.minRiders)}
+                    onChangeText={v =>
+                      handleChangeAddSlot('minRiders', Number(v))
+                    }
+                  />
+                  <TextInput
+                    keyboardType="numeric"
+                    style={styles.number}
+                    placeholder="Price"
+                    value={String(sessionForm.pricePerSeat)}
+                    onChangeText={v =>
+                      handleChangeAddSlot('pricePerSeat', Number(v))
+                    }
+                  />
                 </View>
 
-                {/* SUBMIT */}
-                <Button
-                  label={isUploading ? 'Listing...' : 'List Session'}
-                  onPress={handleSubmitAddSlot}
-                  disabled={isUploading}
-                />
-              </ScrollView>
-            </View>
+                <Text style={styles.revenueText}>
+                  Trip confirms automatically when revenue hits AED{' '}
+                  {sessionForm.minRiders * sessionForm.pricePerSeat}
+                </Text>
+              </View>
+
+              {/* SUBMIT */}
+              <Button
+                label={isUploading ? 'Listing...' : 'List Session'}
+                onPress={handleSubmitAddSlot}
+                disabled={isUploading}
+              />
+            </ScrollView>
           </View>
-        </Modal>
-      </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
