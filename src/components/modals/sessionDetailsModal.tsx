@@ -29,6 +29,7 @@ import {
   verticalScale,
 } from '../../theme';
 import { Button } from '../atoms';
+import { formatDuration } from '../../utils/common_logic';
 
 interface SessionDetailCardProps {
   visible: boolean;
@@ -65,6 +66,8 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
         return <Sun size={16} color={colors.orange500} />;
     }
   };
+
+
 
   return (
     <Modal
@@ -111,6 +114,11 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               </Text>
             </View>
 
+            {/* Time */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: horizontalScale(5) }}>
+              <Clock size={horizontalScale(12)} color={colors.black} />
+              <Text style={{ ...typography.small, color: colors.black }}>{formatDuration(session.durationMinutes)}</Text>
+            </View>
             {/* CAPACITY */}
             <View>
               <Text style={styles.capacityText}>

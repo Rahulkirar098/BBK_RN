@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Platform, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { colors, horizontalScale, verticalScale } from '../../../../theme';
@@ -34,25 +34,6 @@ import {
 
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import functions from '@react-native-firebase/functions';
-
-// Initialize Firebase with your project config
-import { initializeApp, getApps } from '@react-native-firebase/app';
-
-const firebaseConfig = {
-  apiKey: 'AIzaSyDUNwzZodNk9-I1lxfsyI902OcZNQe4s38',
-  authDomain: 'bookbyseat-40f83.firebaseapp.com',
-  projectId: 'bookbyseat-40f83',
-  storageBucket: 'bookbyseat-40f83.firebasestorage.app',
-  messagingSenderId: '340512668066',
-  appId: '1:340512668066:web:74cbd622bc9506f7645afb',
-  measurementId: 'G-EGF4568LJ3',
-};
-
-// Initialize Firebase only if not already initialized
-if (getApps().length === 0) {
-  initializeApp(firebaseConfig);
-}
 
 const db = getFirestore();
 
@@ -206,54 +187,76 @@ export const RiderDashboard = () => {
     });
   };
 
-  const handlePaymentConfirmed = async (session: any) => {
-    if (!selectedSession) return;
 
-    try {
-      const sessionId = session?.id;
-      const operatorUid = session?.userId;
+const handlePaymentConfirmed = async (session: any) => {
+  if (!session) return;
 
-      if (!sessionId || !operatorUid) {
-        Alert.alert('Error', 'Invalid session data');
-        return;
-      }
+  const sessionId = session?.id;
+  const operatorUid = session?.userId;
+  const riderUid = auth().currentUser?.uid;
 
-      const currentUser = auth().currentUser;
-      if (!currentUser) {
-        Alert.alert('Error', 'Please log in first');
-        return;
-      }
+  if (!sessionId || !operatorUid || !riderUid) {
+    Alert.alert('Error', 'Invalid session or user data');
+    return;
+  }
 
-      setLoading(true);
+  setLoading(true);
 
-      const createIntent = functions().httpsCallable('createPaymentIntent');
+  try {
+    console.log('Calling payment intent API...');
 
-      console.log('Calling Firebase function...');
+    // Use 10.0.2.2 for Android emulator
+    const baseUrl =
+      Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
-      const { data }: any = await createIntent({
-        sessionId,
-        operatorUid,
+    const response = await fetch(`${baseUrl}/create-payment-intent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, operatorUid, riderUid }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create payment intent');
+    }
+
+    const clientSecret = data.clientSecret;
+    if (!clientSecret) {
+      throw new Error('No clientSecret returned from backend');
+    }
+
+    console.log('PaymentIntent clientSecret:', clientSecret);
+
+    // Confirm payment with Stripe SDK
+    const { error, paymentIntent } = await stripe.confirmPayment(clientSecret, {
+      paymentMethodType: 'Card',
+    });
+
+    if (error) {
+      console.error('Stripe confirmPayment error:', error);
+      Alert.alert('Payment failed', error.message || 'Please try again');
+    } else if (paymentIntent) {
+      console.log('Payment successful:', paymentIntent.id);
+      Alert.alert('Payment success', `Payment ID: ${paymentIntent.id}`);
+      // 🔥 Update nested slot document
+      await updateDoc(doc(db, 'slots', operatorUid, 'slots', sessionId), {
+        ...session,
       });
 
-      console.log(data);
+      // ✅ Close modals
+      setPaymentModal(false);
+      setSelectedSession(null);
 
-      // const clientSecret = data.clientSecret;
-      // const paymentIntentId = data.paymentIntentId;
-
-      // console.log('clientSecret:', clientSecret);
-      // console.log('paymentIntentId:', paymentIntentId);
-
-      // Alert.alert('PaymentIntent created', `ID: ${paymentIntentId}`);
-    } catch (error: any) {
-      console.error('Failed to update slot:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Something went wrong. Please try again.',
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err: any) {
+    console.error('Failed to create or confirm payment intent:', err);
+    Alert.alert('Error', err.message || 'Something went wrong. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ---------- Render ---------- //
   return (
