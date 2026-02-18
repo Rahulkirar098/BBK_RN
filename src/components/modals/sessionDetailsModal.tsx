@@ -28,6 +28,7 @@ import {
   typography,
   verticalScale,
 } from '../../theme';
+import { Button } from '../atoms';
 
 interface SessionDetailCardProps {
   visible: boolean;
@@ -44,6 +45,8 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   onBook,
   onWaitlist,
 }) => {
+  console.log(session, '===@@@');
+
   if (!session) return null;
 
   const progressPercent = (session.bookedSeats / session.totalSeats) * 100;
@@ -66,7 +69,12 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent statusBarTranslucent animationType="slide">
+    <Modal
+      visible={visible}
+      transparent
+      statusBarTranslucent
+      animationType="slide"
+    >
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* CLOSE */}
@@ -93,8 +101,8 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
 
           {/* CONTENT */}
           <ScrollView
-            style={styles.content}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.content}
           >
             {/* TITLE + PRICE */}
             <View style={styles.headerRow}>
@@ -106,7 +114,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
             </View>
 
             {/* CAPACITY */}
-            <View style={styles.capacityBox}>
+            <View>
               <Text style={styles.capacityText}>
                 {session.bookedSeats}/{session.totalSeats} Seats
               </Text>
@@ -192,13 +200,9 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
 
             {/* BUTTON */}
             {isFull ? (
-              <TouchableOpacity style={styles.waitlistBtn} onPress={onWaitlist}>
-                <Text style={styles.btnText}>Join Waitlist</Text>
-              </TouchableOpacity>
+              <Button label="Join Waitlist" onPress={onWaitlist} />
             ) : (
-              <TouchableOpacity style={styles.bookBtn} onPress={onBook}>
-                <Text style={styles.btnText}>Book Seat</Text>
-              </TouchableOpacity>
+              <Button label="Book Seat" onPress={onBook} />
             )}
 
             <Text style={styles.footerNote}>
@@ -257,12 +261,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   content: {
-    padding: 20,
+    padding: horizontalScale(20),
+    gap: verticalScale(10),
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
   title: {
     ...typography.sectionTitle,
@@ -272,9 +276,6 @@ const styles = StyleSheet.create({
   price: {
     ...typography.sectionTitle,
     color: colors.primary,
-  },
-  capacityBox: {
-    marginBottom: 20,
   },
   capacityText: {
     ...typography.small,
@@ -294,7 +295,6 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: verticalScale(10),
   },
   infoCard: {
     flex: 1,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   captainCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'center',
     gap: 12,
   },
   avatar: {

@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import OperatorDashboard from './operator/OperatorDashboard';
 import { RiderDashboard } from './rider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +11,7 @@ const Dashboard = () => {
     const loadRole = async () => {
       try {
         const storedRole = await AsyncStorage.getItem('bbs_user');
-        setRole(JSON.parse(storedRole || '{}').role); // e.g. "rider" | "owner"
+        setRole(JSON.parse(storedRole || '{}').role);
       } catch (e) {
         console.log('Error reading role', e);
       } finally {
@@ -23,8 +21,6 @@ const Dashboard = () => {
 
     loadRole();
   }, []);
-
-  // Prevent navigator from flashing wrong tabs
   if (loading) return null;
   return role === 'RIDER' ? <RiderDashboard /> : <OperatorDashboard />;
 };

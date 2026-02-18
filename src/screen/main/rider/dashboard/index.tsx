@@ -134,6 +134,17 @@ export const RiderDashboard = () => {
     });
   }, [sessions, selectedTab]);
 
+  // ---------- Digital Signature ---------- //
+  const [signature, setSignature] = useState('');
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  const [checks, setChecks] = useState({
+    risks: false,
+    medical: false,
+    liability: false,
+    photos: false,
+  });
+
   const handleBookSession = async () => {
     if (selectedSession) {
       const storedUser = await AsyncStorage.getItem('bbs_user');
@@ -147,12 +158,22 @@ export const RiderDashboard = () => {
       if (isUser?.length) {
         Alert.alert('You have already booked this session');
         return;
-      }else{ 
+      } else {
         setSessionDetailModal(false);
         setShowWaiverModal(true);
-        console.log(selectedSession,"===@@@")
       }
     }
+  };
+
+  const handleWaiverClear = () => {
+    setSignature('');
+    setHasScrolled(false);
+    setChecks({
+      risks: false,
+      medical: false,
+      liability: false,
+      photos: false,
+    });
   };
 
   const handlePaymentConfirmed = async (data: any) => {
@@ -161,8 +182,6 @@ export const RiderDashboard = () => {
     try {
       const sessionId = data?.id;
       const uid = data?.userId; // IMPORTANT: make sure session contains uid
-
-      console.log(sessionId, uid, data, '===@@@');
 
       if (!sessionId || !uid) {
         Alert.alert('Error', 'Invalid session data');
@@ -249,12 +268,18 @@ export const RiderDashboard = () => {
         onClose={() => {
           setSessionDetailModal(true);
           setShowWaiverModal(false);
+          handleWaiverClear();
         }}
-        onConfirm={e => {
-          console.log(e);
+        onConfirm={() => {
           setShowWaiverModal(false);
           setPaymentModal(true);
         }}
+        signature={signature}
+        setSignature={setSignature}
+        hasScrolled={hasScrolled}
+        setHasScrolled={setHasScrolled}
+        checks={checks}
+        setChecks={setChecks}
       />
 
       <PaymentModal
@@ -279,7 +304,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: horizontalScale(20),
     paddingTop: verticalScale(10),
-    paddingBottom: verticalScale(40), // Prevent last item clipping
+    paddingBottom: verticalScale(40),
   },
 
   headerContainer: {

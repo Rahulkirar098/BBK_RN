@@ -23,23 +23,41 @@ import {
   verticalScale,
 } from '../../theme';
 
+interface WaiverChecks {
+  risks: boolean;
+  medical: boolean;
+  liability: boolean;
+  photos: boolean;
+}
+
 interface Props {
   visible: boolean;
   onClose: () => void;
   onConfirm: (data: any) => void;
+  // ---------- State ---------- //
+  signature: string;
+  setSignature: (signature: string) => void;
+
+  // ---------- State ---------- //
+  hasScrolled: boolean;
+  setHasScrolled: React.Dispatch<React.SetStateAction<boolean>>;
+
+  // ---------- State ---------- //
+  checks: WaiverChecks;
+  setChecks: React.Dispatch<React.SetStateAction<WaiverChecks>>;
 }
 
-export const WaiverModal = ({ visible, onClose, onConfirm }: Props) => {
-  const [signature, setSignature] = useState('');
-  const [hasScrolled, setHasScrolled] = useState(false);
-
-  const [checks, setChecks] = useState({
-    risks: false,
-    medical: false,
-    liability: false,
-    photos: false,
-  });
-
+export const WaiverModal = ({
+  visible,
+  onClose,
+  onConfirm,
+  signature,
+  setSignature,
+  hasScrolled,
+  setHasScrolled,
+  checks,
+  setChecks,
+}: Props) => {
   const allChecked = Object.values(checks).every(Boolean);
   const isReady = allChecked && signature.length > 2 && hasScrolled;
 
@@ -51,8 +69,11 @@ export const WaiverModal = ({ visible, onClose, onConfirm }: Props) => {
     }
   };
 
-  const toggleCheck = (key: keyof typeof checks) => {
-    setChecks(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleCheck = (key: keyof WaiverChecks) => {
+    setChecks(prev => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
   return (
