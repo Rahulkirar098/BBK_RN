@@ -361,7 +361,7 @@ const OperatorProfile = () => {
     );
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Business Hub</Text>
@@ -386,226 +386,6 @@ const OperatorProfile = () => {
           />
         </View>
 
-        {/* 🚀 MODAL */}
-        <Modal
-          visible={state.modalOpen}
-          animationType="slide"
-          onRequestClose={() => dispatch({ type: 'CLOSE_MODAL' })}
-          transparent={true}
-        >
-          <View style={styles.modal}>
-            <View style={styles.modalCard}>
-              <ScrollView nestedScrollEnabled={true}>
-                <Text style={styles.modalTitle}>
-                  {state.tab === 'boats' ? 'Boats' : 'Captains'}
-                </Text>
-
-                {!state.editingBoat && !state.editingCaptain && (
-                  <FlatList
-                    data={state.tab === 'boats' ? state.boats : state.captains}
-                    keyExtractor={item => item.id}
-                    nestedScrollEnabled
-                    renderItem={({ item }) => (
-                      <View style={styles.itemRow}>
-                        <Text>
-                          {state.tab === 'boats' ? item.boatName : item.name}
-                        </Text>
-                        <View style={styles.iconRow}>
-                          <TouchableOpacity
-                            onPress={() =>
-                              dispatch({
-                                type:
-                                  state.tab === 'boats'
-                                    ? 'EDIT_BOAT'
-                                    : 'EDIT_CAPTAIN',
-                                payload: item,
-                              })
-                            }
-                          >
-                            <Pencil size={18} />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={() => deleteItem(state.tab, item.id)}
-                          >
-                            <Trash2 size={18} />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    )}
-                  />
-                )}
-
-                {!state.editingBoat && !state.editingCaptain && (
-                  <Button
-                    label="Add New"
-                    onPress={() =>
-                      dispatch({
-                        type:
-                          state.tab === 'boats'
-                            ? 'CREATE_BOAT'
-                            : 'CREATE_CAPTAIN',
-                        payload:
-                          state.tab === 'boats'
-                            ? { ...emptyBoat }
-                            : { ...emptyCaptain },
-                      })
-                    }
-                  />
-                )}
-
-                {state.editingBoat && (
-                  <View style={{ gap: horizontalScale(5) }}>
-                    <Input
-                      placeholder="Boat Name"
-                      value={state.editingBoat.boatName}
-                      onChangeText={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingBoat',
-                          field: 'boatName',
-                          value: v,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder="Boat Company"
-                      value={state.editingBoat.boatCompany}
-                      onChangeText={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingBoat',
-                          field: 'boatCompany',
-                          value: v,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder="Boat Model"
-                      value={state.editingBoat.boatModel}
-                      onChangeText={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingBoat',
-                          field: 'boatModel',
-                          value: v,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder="Boat Capacity"
-                      keyboardType="numeric"
-                      value={String(state.editingBoat.boatCapacity)}
-                      onChangeText={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingBoat',
-                          field: 'boatCapacity',
-                          value: Number(v),
-                        })
-                      }
-                    />
-
-                    <Select
-                      label="Status"
-                      options={statusOptions}
-                      onChange={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingBoat',
-                          field: 'status',
-                          value: v,
-                        })
-                      }
-                      value={state.editingBoat.status}
-                    />
-
-                    {/* 📌 IMAGE PREVIEW */}
-                    {state.boatImage && (
-                      <Image
-                        source={{ uri: state.boatImage.uri }}
-                        style={styles.preview}
-                      />
-                    )}
-                    <Button
-                      label="Pick Image"
-                      onPress={() => handlePickImage('boatImage')}
-                    />
-
-                    <Button label="Save Boat" onPress={saveBoat} />
-                  </View>
-                )}
-
-                {state.editingCaptain && (
-                  <View style={{ gap: horizontalScale(5) }}>
-                    <Input
-                      placeholder="Captain Name"
-                      value={state.editingCaptain.name}
-                      onChangeText={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingCaptain',
-                          field: 'name',
-                          value: v,
-                        })
-                      }
-                    />
-
-                    <Select
-                      label="Status"
-                      options={statusOptions}
-                      onChange={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingCaptain',
-                          field: 'status',
-                          value: v,
-                        })
-                      }
-                      value={state.editingCaptain.status}
-                    />
-
-                    <Select
-                      label="Language"
-                      options={language}
-                      onChange={v =>
-                        dispatch({
-                          type: 'SET_FIELD',
-                          target: 'editingCaptain',
-                          field: 'language',
-                          value: v,
-                        })
-                      }
-                      value={state.editingCaptain.language}
-                    />
-
-                    {/* 📌 IMAGE PREVIEW */}
-                    {state.captainImage && (
-                      <Image
-                        source={{ uri: state.captainImage.uri }}
-                        style={styles.preview}
-                      />
-                    )}
-                    <Button
-                      label="Pick Image"
-                      onPress={() => handlePickImage('captainImage')}
-                    />
-
-                    <Button label="Save Captain" onPress={saveCaptain} />
-                  </View>
-                )}
-              </ScrollView>
-            </View>
-
-            {/* Close Button */}
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={() => dispatch({ type: 'CLOSE_MODAL' })}
-            >
-              <Text style={{ color: 'white' }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </Modal>
-
         {/* 🔥 UPLOADING LOADER */}
         {uploading && (
           <View style={styles.loaderOverlay}>
@@ -621,6 +401,226 @@ const OperatorProfile = () => {
           color={colors.error}
         />
       </View>
+
+      {/* 🚀 MODAL */}
+      <Modal
+        visible={state.modalOpen}
+        animationType="slide"
+        onRequestClose={() => dispatch({ type: 'CLOSE_MODAL' })}
+        transparent={true}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalCard}>
+            <ScrollView nestedScrollEnabled={true}>
+              <Text style={styles.modalTitle}>
+                {state.tab === 'boats' ? 'Boats' : 'Captains'}
+              </Text>
+
+              {!state.editingBoat && !state.editingCaptain && (
+                <FlatList
+                  data={state.tab === 'boats' ? state.boats : state.captains}
+                  keyExtractor={item => item.id}
+                  nestedScrollEnabled
+                  renderItem={({ item }) => (
+                    <View style={styles.itemRow}>
+                      <Text>
+                        {state.tab === 'boats' ? item.boatName : item.name}
+                      </Text>
+                      <View style={styles.iconRow}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            dispatch({
+                              type:
+                                state.tab === 'boats'
+                                  ? 'EDIT_BOAT'
+                                  : 'EDIT_CAPTAIN',
+                              payload: item,
+                            })
+                          }
+                        >
+                          <Pencil size={18} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => deleteItem(state.tab, item.id)}
+                        >
+                          <Trash2 size={18} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                />
+              )}
+
+              {!state.editingBoat && !state.editingCaptain && (
+                <Button
+                  label="Add New"
+                  onPress={() =>
+                    dispatch({
+                      type:
+                        state.tab === 'boats'
+                          ? 'CREATE_BOAT'
+                          : 'CREATE_CAPTAIN',
+                      payload:
+                        state.tab === 'boats'
+                          ? { ...emptyBoat }
+                          : { ...emptyCaptain },
+                    })
+                  }
+                />
+              )}
+
+              {state.editingBoat && (
+                <View style={{ gap: horizontalScale(5) }}>
+                  <Input
+                    placeholder="Boat Name"
+                    value={state.editingBoat.boatName}
+                    onChangeText={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingBoat',
+                        field: 'boatName',
+                        value: v,
+                      })
+                    }
+                  />
+                  <Input
+                    placeholder="Boat Company"
+                    value={state.editingBoat.boatCompany}
+                    onChangeText={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingBoat',
+                        field: 'boatCompany',
+                        value: v,
+                      })
+                    }
+                  />
+                  <Input
+                    placeholder="Boat Model"
+                    value={state.editingBoat.boatModel}
+                    onChangeText={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingBoat',
+                        field: 'boatModel',
+                        value: v,
+                      })
+                    }
+                  />
+                  <Input
+                    placeholder="Boat Capacity"
+                    keyboardType="numeric"
+                    value={String(state.editingBoat.boatCapacity)}
+                    onChangeText={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingBoat',
+                        field: 'boatCapacity',
+                        value: Number(v),
+                      })
+                    }
+                  />
+
+                  <Select
+                    label="Status"
+                    options={statusOptions}
+                    onChange={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingBoat',
+                        field: 'status',
+                        value: v,
+                      })
+                    }
+                    value={state.editingBoat.status}
+                  />
+
+                  {/* 📌 IMAGE PREVIEW */}
+                  {state.boatImage && (
+                    <Image
+                      source={{ uri: state.boatImage.uri }}
+                      style={styles.preview}
+                    />
+                  )}
+                  <Button
+                    label="Pick Image"
+                    onPress={() => handlePickImage('boatImage')}
+                  />
+
+                  <Button label="Save Boat" onPress={saveBoat} />
+                </View>
+              )}
+
+              {state.editingCaptain && (
+                <View style={{ gap: horizontalScale(5) }}>
+                  <Input
+                    placeholder="Captain Name"
+                    value={state.editingCaptain.name}
+                    onChangeText={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingCaptain',
+                        field: 'name',
+                        value: v,
+                      })
+                    }
+                  />
+
+                  <Select
+                    label="Status"
+                    options={statusOptions}
+                    onChange={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingCaptain',
+                        field: 'status',
+                        value: v,
+                      })
+                    }
+                    value={state.editingCaptain.status}
+                  />
+
+                  <Select
+                    label="Language"
+                    options={language}
+                    onChange={v =>
+                      dispatch({
+                        type: 'SET_FIELD',
+                        target: 'editingCaptain',
+                        field: 'language',
+                        value: v,
+                      })
+                    }
+                    value={state.editingCaptain.language}
+                  />
+
+                  {/* 📌 IMAGE PREVIEW */}
+                  {state.captainImage && (
+                    <Image
+                      source={{ uri: state.captainImage.uri }}
+                      style={styles.preview}
+                    />
+                  )}
+                  <Button
+                    label="Pick Image"
+                    onPress={() => handlePickImage('captainImage')}
+                  />
+
+                  <Button label="Save Captain" onPress={saveCaptain} />
+                </View>
+              )}
+            </ScrollView>
+          </View>
+
+          {/* Close Button */}
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={() => dispatch({ type: 'CLOSE_MODAL' })}
+          >
+            <Text style={{ color: 'white' }}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -628,10 +628,14 @@ const OperatorProfile = () => {
 export default OperatorProfile;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    paddingHorizontal: horizontalScale(20),
     backgroundColor: colors.background,
+  },
+
+  container: {
+    paddingHorizontal: horizontalScale(20),
+    gap: verticalScale(14),
   },
 
   header: {
@@ -647,8 +651,7 @@ const styles = StyleSheet.create({
 
   row: {
     flexDirection: 'row',
-    gap: 16,
-    marginTop: 16,
+    gap: horizontalScale(10),
   },
 
   center: {

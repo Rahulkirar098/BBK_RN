@@ -30,10 +30,9 @@ export const colors = {
 
   // Success
   success: '#10B981',
+  successLight: '#DCFCE7',
 
   // Error
   error: '#EF4444',
-
-  // Error Light
   errorLight: '#FEE2E2',
 };

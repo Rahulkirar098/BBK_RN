@@ -20,6 +20,8 @@ import { LanguageNotificationsSection } from './language&Notifications';
 import { useNavigation } from '@react-navigation/native';
 import { SettingsActions } from './reset&Logout';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export const Setting = () => {
   const navigation = useNavigation<any>();
 
@@ -65,8 +67,14 @@ export const Setting = () => {
     return unsubscribeAuth;
   }, []);
 
-  /* ---------------- LOADING STATE ---------------- */
+  /* ---------------- LOGOUT ---------------- */
+  const logout = async () => {
+    await auth().signOut();
+    await AsyncStorage.removeItem('bbs_user');
+    navigation.replace('role-selection');
+  };
 
+  /* ---------------- LOADING STATE ---------------- */
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -100,10 +108,7 @@ export const Setting = () => {
           language={riderData?.userProfile?.language}
           setLanguage={() => {}}
         />
-        <SettingsActions
-          onResetData={() => {}}
-          onLogout={() => {}}
-        />
+        <SettingsActions onResetData={() => {}} onLogout={logout} />
       </View>
     </SafeAreaView>
   );
