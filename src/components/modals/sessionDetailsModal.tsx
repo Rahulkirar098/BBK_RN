@@ -45,8 +45,6 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   onBook,
   onWaitlist,
 }) => {
-  console.log(session, '===@@@');
-
   if (!session) return null;
 
   const progressPercent = (session.bookedSeats / session.totalSeats) * 100;

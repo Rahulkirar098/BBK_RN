@@ -10,8 +10,7 @@ import { colors, horizontalScale, verticalScale } from '../theme';
 import { Ticket, User, LayoutDashboard } from 'lucide-react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import Profile from '../screen/main/Profile';
-import { Setting } from '../screen/main/rider/setting';
+import { ProfileStackNavigator } from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
 const NavigateStack = createNativeStackNavigator();
@@ -100,19 +99,7 @@ export const BottomNavigation = () => {
         {/* Profile - always visible */}
         <Tab.Screen
           name="profile"
-          component={() => {
-            return (
-              <NavigateStack.Navigator
-                initialRouteName="profile_home"
-                screenOptions={{
-                  headerShown: false,
-                }}
-              >
-                <NavigateStack.Screen name="profile_home" component={Profile} />
-                <NavigateStack.Screen name="setting" component={Setting} />
-              </NavigateStack.Navigator>
-            );
-          }}
+          component={ProfileStackNavigator}
           options={{ headerShown: false }}
         />
       </Tab.Navigator>

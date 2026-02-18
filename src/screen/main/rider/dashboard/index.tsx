@@ -32,12 +32,38 @@ import {
   collectionGroup,
 } from '@react-native-firebase/firestore';
 
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import functions from '@react-native-firebase/functions';
+
+// Initialize Firebase with your project config
+import { initializeApp, getApps } from '@react-native-firebase/app';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyDUNwzZodNk9-I1lxfsyI902OcZNQe4s38',
+  authDomain: 'bookbyseat-40f83.firebaseapp.com',
+  projectId: 'bookbyseat-40f83',
+  storageBucket: 'bookbyseat-40f83.firebasestorage.app',
+  messagingSenderId: '340512668066',
+  appId: '1:340512668066:web:74cbd622bc9506f7645afb',
+  measurementId: 'G-EGF4568LJ3',
+};
+
+// Initialize Firebase only if not already initialized
+if (getApps().length === 0) {
+  initializeApp(firebaseConfig);
+}
+
 const db = getFirestore();
+
+// ---------- Stripe ---------- //
+import { useStripe } from '@stripe/stripe-react-native';
 
 export const RiderDashboard = () => {
   const navigation = useNavigation<any>();
 
   // ---------- State ---------- //
+  const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,6 +73,10 @@ export const RiderDashboard = () => {
   const [sessionDetailModal, setSessionDetailModal] = useState(false);
   const [showWaiverModal, setShowWaiverModal] = useState(false);
   const [paymentModal, setPaymentModal] = useState(false);
+
+  // ---------- Stripe ---------- //
+  const [cardDetails, setCardDetails] = useState<any>({});
+  const stripe = useStripe();
 
   const timeLabels = {
     now: 'Now',
@@ -176,43 +206,52 @@ export const RiderDashboard = () => {
     });
   };
 
-  const handlePaymentConfirmed = async (data: any) => {
+  const handlePaymentConfirmed = async (session: any) => {
     if (!selectedSession) return;
 
     try {
-      const sessionId = data?.id;
-      const uid = data?.userId; // IMPORTANT: make sure session contains uid
+      const sessionId = session?.id;
+      const operatorUid = session?.userId;
 
-      if (!sessionId || !uid) {
+      if (!sessionId || !operatorUid) {
         Alert.alert('Error', 'Invalid session data');
         return;
       }
 
-      // 🔥 Update nested slot document
-      await updateDoc(doc(db, 'slots', uid, 'slots', sessionId), {
-        ...data,
-      });
-
-      // ✅ Close modals
-      setPaymentModal(false);
-      setSelectedSession(null);
-
-      // 🔥 Check confirmation logic
-      const totalSeats = data?.totalSeats ?? 0;
-      const bookedSeats = data?.bookedSeats ?? 0;
-      const minRidersToConfirm = data?.minRidersToConfirm ?? 0;
-
-      if (bookedSeats >= minRidersToConfirm && bookedSeats <= totalSeats) {
-        console.log('🚀 Minimum riders reached → capture Stripe payment here');
-
-        // 👉 THIS is where you call:
-        // your Cloud Function to CAPTURE Stripe PaymentIntent
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        Alert.alert('Error', 'Please log in first');
+        return;
       }
 
-      Alert.alert('Success', 'Seat reserved successfully 🎉');
-    } catch (error) {
+      setLoading(true);
+
+      const createIntent = functions().httpsCallable('createPaymentIntent');
+
+      console.log('Calling Firebase function...');
+
+      const { data }: any = await createIntent({
+        sessionId,
+        operatorUid,
+      });
+
+      console.log(data);
+
+      // const clientSecret = data.clientSecret;
+      // const paymentIntentId = data.paymentIntentId;
+
+      // console.log('clientSecret:', clientSecret);
+      // console.log('paymentIntentId:', paymentIntentId);
+
+      // Alert.alert('PaymentIntent created', `ID: ${paymentIntentId}`);
+    } catch (error: any) {
       console.error('Failed to update slot:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      Alert.alert(
+        'Error',
+        error.message || 'Something went wrong. Please try again.',
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -290,6 +329,7 @@ export const RiderDashboard = () => {
           setPaymentModal(false);
         }}
         onConfirm={data => handlePaymentConfirmed(data)}
+        setCardDetails={setCardDetails}
       />
     </SafeAreaView>
   );

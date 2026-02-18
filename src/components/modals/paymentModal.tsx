@@ -14,6 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Lock, X, CreditCard, ShieldCheck } from 'lucide-react-native';
 
+import { CardField } from '@stripe/stripe-react-native';
+
 import {
   colors,
   typography,
@@ -26,6 +28,8 @@ interface PaymentModalProps {
   onClose: () => void;
   onConfirm: (data: any) => void;
   visible: boolean;
+
+  setCardDetails: (data: any) => void;
 }
 
 export const PaymentModal = ({
@@ -33,6 +37,8 @@ export const PaymentModal = ({
   onClose,
   onConfirm,
   visible,
+
+  setCardDetails,
 }: PaymentModalProps) => {
   const [loading, setLoading] = useState(false);
 
@@ -111,7 +117,7 @@ export const PaymentModal = ({
             </View>
 
             {/* Card Fields */}
-            <View style={styles.cardInput}>
+            {/* <View style={styles.cardInput}>
               <CreditCard size={18} color={colors.gray400} />
               <TextInput
                 placeholder="Card number"
@@ -131,7 +137,18 @@ export const PaymentModal = ({
                 placeholderTextColor={colors.textSecondary}
                 style={[styles.inputBox, { flex: 1 }]}
               />
-            </View>
+            </View> */}
+
+            <CardField
+              postalCodeEnabled={false}
+              placeholders={{ number: '4242 4242 4242 4242' }}
+              cardStyle={{
+                backgroundColor: colors.white,
+                textColor: colors.black,
+              }}
+              style={{ width: '100%', height: 50, marginVertical: 30 }}
+              onCardChange={card => setCardDetails(card)}
+            />
 
             {/* Pay Button */}
             <TouchableOpacity
