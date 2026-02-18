@@ -1,17 +1,30 @@
+//-----------React Native-----------//
 import { View } from 'react-native';
-import SplashScreen from './src/screen/auth/SplashScreen';
-import RoleSelectionScreen from './src/screen/auth/RoleSelectionScreen';
-import AuthScreen from './src/screen/auth/AuthScreen';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+//-----------Navigation-----------//
 import { Navigation } from './src/navigation';
 
+//-----------Google Signin-----------//
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+//-----------Stripe-----------//
+import { StripeProvider } from '@stripe/stripe-react-native';
+
+//-----------Key-----------//
+import { googleSignin, stripKey } from './src/config';
+
 function App() {
-GoogleSignin.configure({
-  webClientId: '340512668066-ipm1rhie49a41mpa9bh00pbv4dhcbprs.apps.googleusercontent.com',
-});
+  GoogleSignin.configure({
+    webClientId: googleSignin,
+  });
   return (
-    <View style={{ flex: 1}}>
-      <Navigation/>
+    <View style={{ flex: 1 }}>
+      <StripeProvider
+        publishableKey={stripKey}
+        // merchantIdentifier="merchant.com.bookbyseat" // iOS only (Apple Pay)
+      >
+        <Navigation />
+      </StripeProvider>
     </View>
   );
 }
