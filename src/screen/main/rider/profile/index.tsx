@@ -34,6 +34,7 @@ export const RiderProfile = () => {
   useEffect(() => {
     const unsubscribeAuth = auth().onAuthStateChanged(user => {
       if (!user) {
+        console.log('No user found');
         setRiderData(null);
         setLoading(false);
         return;
@@ -84,7 +85,7 @@ export const RiderProfile = () => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.center}>
-          <Text style={styles.emptyText}>No profile found</Text>
+          <Text style={styles.emptyText}>No profile found...</Text>
         </View>
       </SafeAreaView>
     );

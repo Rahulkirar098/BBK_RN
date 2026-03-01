@@ -43,5 +43,13 @@ export type OperatorProfileData = {
   complianceStatus: string;
 };
 
-
 export type TimeFilter = 'NOW' | 'TOMORROW' | 'THIS_WEEK';
+
+export enum SESSION_STATUS {
+  OPEN = "open",
+  MIN_REACHED = "min_reached",
+  FULL = "full",
+  CLAIMED = "claimed",
+  CANCELLED = "cancelled",
+}
+

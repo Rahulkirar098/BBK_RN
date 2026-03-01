@@ -139,7 +139,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
                 <MapPin size={16} color={colors.primary} />
-                <Text style={styles.infoText}>{session.location}</Text>
+                <Text style={styles.infoText}>{session?.locationDetails?.name}</Text>
               </View>
             </View>
 

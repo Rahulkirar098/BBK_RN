@@ -8,11 +8,12 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { Lock, X, CreditCard, ShieldCheck } from 'lucide-react-native';
+import { Lock, X, ShieldCheck, CreditCard } from 'lucide-react-native';
 
 import { CardField } from '@stripe/stripe-react-native';
 
@@ -22,14 +23,18 @@ import {
   horizontalScale,
   verticalScale,
 } from '../../theme';
+import { CustomCheckbox } from '../atoms/checkbox';
 
 interface PaymentModalProps {
   session: any;
   onClose: () => void;
-  onConfirm: (data: any) => void;
+  onConfirm: (data: any, stripeData: any) => void;
   visible: boolean;
 
   setCardDetails: (data: any) => void;
+
+  saveCardDetails: boolean;
+  toggleSaveCard: () => void;
 }
 
 export const PaymentModal = ({
@@ -39,6 +44,11 @@ export const PaymentModal = ({
   visible,
 
   setCardDetails,
+
+
+  saveCardDetails,
+  toggleSaveCard,
+
 }: PaymentModalProps) => {
   const [loading, setLoading] = useState(false);
 
@@ -51,39 +61,36 @@ export const PaymentModal = ({
 
       const user = JSON.parse(storedUser);
 
-      const totalSeats = session?.totalSeats ?? 0;
-      const bookedSeats = session?.bookedSeats ?? 0;
-      const minRidersToConfirm = session?.minRidersToConfirm ?? 0;
+      const baseUrl =
+        Platform.OS === 'android'
+          ? 'http://10.0.2.2:3000'
+          : 'http://localhost:3000';
 
-      if (bookedSeats >= totalSeats) {
-        Alert.alert('All seats are full');
-        return;
+      const response = await fetch(`${baseUrl}/create-payment-intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: session?.id,
+          operatorUid: session?.userId,
+          riderUid: user?.uid,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create payment intent');
       }
 
-      const newBookedSeats = bookedSeats + 1;
-
-      const payload = {
-        ...session,
-        bookedSeats: newBookedSeats,
-        ridersProfile: [
-          ...(session?.ridersProfile || []).filter(
-            (r: any) => r?.uid !== user?.uid,
-          ),
-          user,
-        ],
-        isRequested:
-          newBookedSeats >= minRidersToConfirm && newBookedSeats < totalSeats,
-      };
-
-      onConfirm(payload);
-    } catch (err) {
+      // Pass stripeData only
+      onConfirm(session, data);
+    } catch (err: any) {
       console.error(err);
-      Alert.alert('Error', 'Something went wrong');
+      Alert.alert('Error', err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -116,38 +123,36 @@ export const PaymentModal = ({
               </View>
             </View>
 
-            {/* Card Fields */}
-            {/* <View style={styles.cardInput}>
-              <CreditCard size={18} color={colors.gray400} />
-              <TextInput
-                placeholder="Card number"
-                placeholderTextColor={colors.textSecondary}
-                style={styles.input}
-              />
+            {/* Card Section */}
+            <View style={styles.cardContainer}>
+              <View style={styles.cardLabelRow}>
+                <CreditCard size={16} color={colors.primary} />
+                <Text style={styles.cardLabel}>Card Details</Text>
+              </View>
+
+              <View style={styles.cardWrapper}>
+                <CardField
+                  postalCodeEnabled={false}
+                  placeholders={{
+                    number: '4242 4242 4242 4242',
+                  }}
+                  cardStyle={{
+                    backgroundColor: colors.white,
+                    textColor: colors.textPrimary,
+                    borderRadius: 12,
+                    fontSize: 16,
+                  }}
+                  style={styles.cardField}
+                  onCardChange={card => setCardDetails(card)}
+                />
+              </View>
             </View>
 
-            <View style={styles.row}>
-              <TextInput
-                placeholder="MM/YY"
-                placeholderTextColor={colors.textSecondary}
-                style={[styles.inputBox, { flex: 1 }]}
-              />
-              <TextInput
-                placeholder="CVC"
-                placeholderTextColor={colors.textSecondary}
-                style={[styles.inputBox, { flex: 1 }]}
-              />
-            </View> */}
 
-            <CardField
-              postalCodeEnabled={false}
-              placeholders={{ number: '4242 4242 4242 4242' }}
-              cardStyle={{
-                backgroundColor: colors.white,
-                textColor: colors.black,
-              }}
-              style={{ width: '100%', height: 50, marginVertical: 30 }}
-              onCardChange={card => setCardDetails(card)}
+            <CustomCheckbox
+              checked={saveCardDetails}
+              label="Save card details for future bookings"
+              onPress={toggleSaveCard}
             />
 
             {/* Pay Button */}
@@ -305,5 +310,43 @@ const styles = StyleSheet.create({
   secureText: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+
+
+  ///////////
+  cardContainer: {
+    marginTop: verticalScale(20),
+  },
+
+  cardLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: verticalScale(10),
+  },
+
+  cardLabel: {
+    ...typography.cardTitle,
+    color: colors.textPrimary,
+  },
+
+  cardWrapper: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.gray200,
+    paddingHorizontal: horizontalScale(12),
+    paddingVertical: verticalScale(8),
+
+    shadowColor: colors.black,
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  cardField: {
+    width: '100%',
+    height: 50,
   },
 });

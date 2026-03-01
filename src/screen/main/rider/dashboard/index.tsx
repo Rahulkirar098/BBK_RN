@@ -16,6 +16,7 @@ import RequestTripCard from './requestTripCard';
 import TimeFilterBar from './timeLineTabs';
 import { SessionCardRider } from '../../../../components/molicules';
 import {
+  InfoModal,
   PaymentModal,
   SessionDetailCard,
   WaiverModal,
@@ -54,6 +55,12 @@ export const RiderDashboard = () => {
   const [sessionDetailModal, setSessionDetailModal] = useState(false);
   const [showWaiverModal, setShowWaiverModal] = useState(false);
   const [paymentModal, setPaymentModal] = useState(false);
+
+  const [saveCardDetails, setSaveCardDetails] = useState(false);
+
+  const toggleSaveCard = () => {
+    setSaveCardDetails(prev => !prev);
+  };
 
   // ---------- Stripe ---------- //
   const [cardDetails, setCardDetails] = useState<any>({});
@@ -176,6 +183,41 @@ export const RiderDashboard = () => {
     }
   };
 
+  const saveCardToFirestore = async (cardData: any) => {
+    try {
+      const currentUser = auth().currentUser;
+      if (!currentUser) return;
+
+      // ✅ Only save if checkbox enabled
+      if (!saveCardDetails) return;
+
+      // ✅ Only save if card is complete
+      if (!cardData?.complete) {
+        Alert.alert('Card is not complete');
+        return;
+      }
+
+      await firestore()
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('paymentMethods')
+        .add({
+          brand: cardData.brand,
+          last4: cardData.last4,
+          expMonth: cardData.expiryMonth,
+          expYear: cardData.expiryYear,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+
+      Alert.alert('Card saved successfully ✅');
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Failed to save card');
+    }
+  };
+
+  console.log(cardDetails)
+
   const handleWaiverClear = () => {
     setSignature('');
     setHasScrolled(false);
@@ -187,76 +229,82 @@ export const RiderDashboard = () => {
     });
   };
 
+  const handlePaymentConfirmed = async (session: any, stripeData: any) => {
+    if (!session) return;
 
-const handlePaymentConfirmed = async (session: any) => {
-  if (!session) return;
+    const sessionId = session?.id;
+    const operatorUid = session?.userId;
+    const riderUid = auth().currentUser?.uid;
 
-  const sessionId = session?.id;
-  const operatorUid = session?.userId;
-  const riderUid = auth().currentUser?.uid;
-
-  if (!sessionId || !operatorUid || !riderUid) {
-    Alert.alert('Error', 'Invalid session or user data');
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    console.log('Calling payment intent API...');
-
-    // Use 10.0.2.2 for Android emulator
-    const baseUrl =
-      Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-
-    const response = await fetch(`${baseUrl}/create-payment-intent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, operatorUid, riderUid }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to create payment intent');
+    if (!sessionId || !operatorUid) {
+      Alert.alert('Error', 'Invalid session data');
+      return;
     }
 
-    const clientSecret = data.clientSecret;
-    if (!clientSecret) {
-      throw new Error('No clientSecret returned from backend');
-    }
+    try {
+      setLoading(true);
 
-    console.log('PaymentIntent clientSecret:', clientSecret);
 
-    // Confirm payment with Stripe SDK
-    const { error, paymentIntent } = await stripe.confirmPayment(clientSecret, {
-      paymentMethodType: 'Card',
-    });
+      const clientSecret = stripeData.clientSecret;
 
-    if (error) {
-      console.error('Stripe confirmPayment error:', error);
-      Alert.alert('Payment failed', error.message || 'Please try again');
-    } else if (paymentIntent) {
-      console.log('Payment successful:', paymentIntent.id);
-      Alert.alert('Payment success', `Payment ID: ${paymentIntent.id}`);
-      // 🔥 Update nested slot document
-      await updateDoc(doc(db, 'slots', operatorUid, 'slots', sessionId), {
-        ...session,
+      if (!clientSecret) {
+        throw new Error('Missing client secret');
+      }
+
+      // Confirm payment
+      const { error, paymentIntent } = await stripe.confirmPayment(
+        clientSecret,
+        { paymentMethodType: 'Card' },
+      );
+
+      if (error) {
+        Alert.alert('Payment failed', error.message || 'Try again');
+        return;
+      }
+
+      if (!paymentIntent) {
+        throw new Error('Payment confirmation failed');
+      }
+
+      console.log('Payment authorized:', paymentIntent.id);
+
+      // 🔥 Call backend to finalize booking
+      const baseUrl =
+        Platform.OS === 'android'
+          ? 'http://10.0.2.2:3000'
+          : 'http://localhost:3000';
+
+      const finalizeResponse = await fetch(`${baseUrl}/finalize-booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          operatorUid,
+          riderUid: riderUid,
+          paymentIntentId: paymentIntent.id,
+        }),
       });
 
-      // ✅ Close modals
+      const finalizeData = await finalizeResponse.json();
+
+      if (!finalizeResponse.ok) {
+        throw new Error(finalizeData.error || 'Booking failed');
+      }
+
+      Alert.alert('Success', 'Seat reserved successfully');
+
+      saveCardToFirestore(cardDetails)
+
       setPaymentModal(false);
       setSelectedSession(null);
-
+      handleWaiverClear()
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('Error', err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    console.error('Failed to create or confirm payment intent:', err);
-    Alert.alert('Error', err.message || 'Something went wrong. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // ---------- Render ---------- //
   return (
@@ -305,6 +353,10 @@ const handlePaymentConfirmed = async (session: any) => {
         onWaitlist={() => Alert.alert('Join waitlist')}
       />
 
+      {/* <InfoModal
+       label={"Info"}
+       /> */}
+
       <WaiverModal
         visible={showWaiverModal}
         onClose={() => {
@@ -331,8 +383,12 @@ const handlePaymentConfirmed = async (session: any) => {
           setSessionDetailModal(true);
           setPaymentModal(false);
         }}
-        onConfirm={data => handlePaymentConfirmed(data)}
+        onConfirm={(session, stripeData) => handlePaymentConfirmed(session, stripeData)}
         setCardDetails={setCardDetails}
+
+        saveCardDetails={saveCardDetails}
+        toggleSaveCard={toggleSaveCard}
+
       />
     </SafeAreaView>
   );

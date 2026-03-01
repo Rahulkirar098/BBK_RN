@@ -2,13 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BadgeCheck, Camera } from 'lucide-react-native';
 import { colors, typography, horizontalScale, verticalScale } from '../../../../theme';
+import FastImage from 'react-native-fast-image';
 
 interface Props {
   onUploadFront?: () => void;
   onUploadBack?: () => void;
+  idData: any
 }
 
-export const EmiratesIdSection = ({ onUploadFront, onUploadBack }: Props) => {
+export const EmiratesIdSection = ({ onUploadFront, onUploadBack, idData }: Props) => {
   return (
     <View style={styles.card}>
       {/* Header */}
@@ -19,24 +21,32 @@ export const EmiratesIdSection = ({ onUploadFront, onUploadBack }: Props) => {
 
       {/* ID Upload Boxes */}
       <View style={styles.grid}>
-        <UploadBox label={'Front'} onPress={onUploadFront} />
-        <UploadBox label={'Back'} onPress={onUploadBack} />
+        <UploadBox label={'Front'} onPress={onUploadFront} imgURL={idData?.frontUrl} />
+        <UploadBox label={'Back'} onPress={onUploadBack} imgURL={idData?.backUrl} />
       </View>
     </View>
   );
 };
 
-const UploadBox = ({ label, onPress }: any) => (
+const UploadBox = ({ label, onPress, imgURL }: any) => (
   <TouchableOpacity
     style={styles.uploadBox}
     activeOpacity={0.8}
     onPress={onPress}
   >
-    <View style={styles.cameraWrapper}>
+    <FastImage
+      source={{
+        uri: imgURL,
+        priority: FastImage.priority.normal,
+      }}
+      style={{ width: '100%', height: '100%' }}
+      resizeMode={FastImage.resizeMode.cover}
+    />
+    {/* <View style={styles.cameraWrapper}>
       <Camera size={16} color={colors.gray400} />
     </View>
 
-    <Text style={styles.uploadLabel}>{label}</Text>
+    <Text style={styles.uploadLabel}>{label}</Text> */}
   </TouchableOpacity>
 );
 
@@ -76,6 +86,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: "hidden"
   },
 
   cameraWrapper: {

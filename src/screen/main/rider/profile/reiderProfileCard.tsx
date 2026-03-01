@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ship, Settings } from 'lucide-react-native';
 import { colors, horizontalScale, typography } from '../../../../theme';
+import FastImage from 'react-native-fast-image';
 
 interface Props {
   riderData: any;
@@ -13,11 +14,12 @@ export const RiderProfileCard = ({ riderData, navigateSetting }: Props) => {
     if (!timestamp?.seconds) return '';
     return new Date(timestamp.seconds * 1000).toLocaleDateString();
   };
+
   return (
     <View style={styles.card}>
       <View style={styles.row}>
         {/* Profile Image */}
-        <Image source={{ uri: riderData?.image }} style={styles.avatar} />
+        <FastImage source={{ uri: riderData?.photoURL, priority: FastImage.priority.normal, }} style={styles.avatar} />
 
         {/* Info Section */}
         <View style={styles.infoContainer}>

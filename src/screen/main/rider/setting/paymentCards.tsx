@@ -10,10 +10,11 @@ import {
 
 interface Props {
   onAdd?: () => void;
-  onRemove?: () => void;
+  onRemove?: (card: any) => void;
+  cards?: any[];
 }
 
-export const PaymentMethodsSection = ({ onAdd, onRemove }: Props) => {
+export const PaymentMethodsSection = ({ onAdd, onRemove, cards }: Props) => {
   return (
     <View style={styles.card}>
       {/* Header */}
@@ -30,22 +31,27 @@ export const PaymentMethodsSection = ({ onAdd, onRemove }: Props) => {
 
       {/* Body */}
       <View style={styles.body}>
-        <View style={styles.paymentItem}>
-          <View style={styles.paymentLeft}>
-            {/* Card Brand */}
-            <View style={styles.cardBrand}>
-              <Text style={styles.cardBrandText}>VISA</Text>
+        {cards?.map((item: any, index: number) => {
+          return (
+            <View style={styles.paymentItem} key={index}>
+              <View style={styles.paymentLeft}>
+                {/* Card Brand */}
+                <View style={styles.cardBrand}>
+                  <Text style={styles.cardBrandText}>{item?.brand}</Text>
+                </View>
+
+                {/* Masked Number */}
+                <Text style={styles.cardNumber}>•••• {item?.last4}</Text>
+              </View>
+
+              {/* Remove Button */}
+              <TouchableOpacity onPress={() => onRemove?.(item?.id)}>
+                <X size={16} color={colors.gray400} />
+              </TouchableOpacity>
             </View>
+          )
+        })}
 
-            {/* Masked Number */}
-            <Text style={styles.cardNumber}>•••• 4242</Text>
-          </View>
-
-          {/* Remove Button */}
-          <TouchableOpacity onPress={onRemove}>
-            <X size={16} color={colors.gray400} />
-          </TouchableOpacity>
-        </View>
       </View>
     </View>
   );

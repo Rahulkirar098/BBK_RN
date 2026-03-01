@@ -26,6 +26,7 @@ interface SessionCardProps {
   fillPercent: number;
   onEdit?: () => void;
   onCopy?: () => void;
+  onPress?: () => void;
 }
 
 export const SessionCard: React.FC<SessionCardProps> = ({
@@ -39,12 +40,13 @@ export const SessionCard: React.FC<SessionCardProps> = ({
   fillPercent,
   onEdit,
   onCopy,
+  onPress
 }) => {
   return (
     <View style={styles.card}>
       <View style={styles.content}>
         {/* HEADER */}
-        <View style={styles.header}>
+        <TouchableOpacity style={styles.header} onPress={onPress}>
           <View>
             <Text style={styles.title}>{title}</Text>
 
@@ -89,7 +91,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
               </Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* STATS */}
         <View style={styles.statsRow}>

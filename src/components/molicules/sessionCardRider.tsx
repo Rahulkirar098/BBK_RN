@@ -105,7 +105,7 @@ export const SessionCardRider = ({ session, labels, onPress }: Props) => {
           <View style={styles.metaItem}>
             <MapPin size={14} color={colors.primary} />
             <Text numberOfLines={1} style={styles.metaText}>
-              {session.location}
+              {session?.locationDetails?.name}
             </Text>
           </View>
         </View>

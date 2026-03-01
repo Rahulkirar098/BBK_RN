@@ -11,6 +11,7 @@ import { Ticket, User, LayoutDashboard } from 'lucide-react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { ProfileStackNavigator } from './ProfileStackNavigator';
+import { Trip } from '../screen/main/rider/tripe';
 
 const Tab = createBottomTabNavigator();
 const NavigateStack = createNativeStackNavigator();
@@ -91,7 +92,7 @@ export const BottomNavigation = () => {
         {role === 'RIDER' && (
           <Tab.Screen
             name="trips"
-            component={Dashboard}
+            component={Trip}
             options={{ headerShown: false }}
           />
         )}

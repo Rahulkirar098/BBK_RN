@@ -31,6 +31,7 @@ import {
   Button,
 } from '../../../components/atoms';
 import { SessionCard } from '../../../components/molicules';
+
 import {
   colors,
   horizontalScale,
@@ -58,9 +59,13 @@ import {
   Timestamp,
 } from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
+
 import { AddSlotOptions } from '../../../utils';
-import { ActiveStatus } from '../../../type';
+import { ActiveStatus, SESSION_STATUS } from '../../../type';
 import { pickImageFromGallery } from '../../../utils/common_logic';
+import { CreateSessionModal, SessionDetailModal } from '../../../components/modals';
+
+
 
 const OperatorDashboard: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -82,6 +87,9 @@ const OperatorDashboard: React.FC = () => {
     totalSeats: 0,
     minRiders: 0,
     pricePerSeat: 0,
+    durationMinutes: 0,
+    location: {},
+    locationDetails: {}
   });
 
   const handleChangeAddSlot = (key: string, value: any) => {
@@ -98,6 +106,24 @@ const OperatorDashboard: React.FC = () => {
     }
   };
 
+  const handleResetSessionForm = () => {
+    setSessionForm({
+      title: '',
+      activity: '',
+      date: new Date(),
+      time: new Date(),
+      boat: null,
+      captain: null,
+      image: null,
+      totalSeats: 0,
+      minRiders: 0,
+      pricePerSeat: 0,
+      durationMinutes: 0,
+      location: {},
+      locationDetails: {}
+    })
+  }
+
   const formatDate = (d: Date) =>
     d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
 
@@ -111,6 +137,7 @@ const OperatorDashboard: React.FC = () => {
     if (!sessionForm.captain) return 'Captain required';
     if (!sessionForm.date) return 'Date required';
     if (!sessionForm.time) return 'Time required';
+    if (!sessionForm.location) return 'location required';
 
     if (sessionForm.totalSeats <= 0)
       return 'Total seats must be greater than 0';
@@ -164,6 +191,10 @@ const OperatorDashboard: React.FC = () => {
         imageUrl = await imageRef.getDownloadURL();
       }
 
+      const selectedOption = AddSlotOptions.find(
+        item => item.value === sessionForm.activity
+      );
+
       const payload = {
         title: sessionForm.title,
         activity: sessionForm.activity,
@@ -171,19 +202,28 @@ const OperatorDashboard: React.FC = () => {
         totalSeats: sessionForm.totalSeats,
         minRidersToConfirm: sessionForm.minRiders,
         pricePerSeat: sessionForm.pricePerSeat,
-        durationMinutes: 120,
+
+        // ✅ Duration calculated here
+        durationMinutes: selectedOption?.durationMinutes || 0,
+
         boat: sessionForm.boat,
         captain: sessionForm.captain,
+
         timeStart: Timestamp.fromDate(start),
+
         date: start.toISOString(),
         time: start.toISOString(),
+
         userId: uid,
+
         bookedSeats: 0,
-        isRequested: false,
-        requestStatus: 'OPEN',
         ridersProfile: [],
+
+        status: SESSION_STATUS.OPEN, // ✅ NEW
+
         createdAt: serverTimestamp(),
-        location: '',
+        location: sessionForm.location,
+        locationDetails: sessionForm.locationDetails
       };
 
       await addDoc(collection(db, 'slots', uid, 'slots'), payload);
@@ -191,18 +231,7 @@ const OperatorDashboard: React.FC = () => {
       // 🔄 Reset form
       setShowAddSession(false);
 
-      setSessionForm({
-        title: '',
-        activity: '',
-        date: new Date(),
-        time: new Date(),
-        boat: null,
-        captain: null,
-        image: null,
-        totalSeats: 5,
-        minRiders: 3,
-        pricePerSeat: 200,
-      });
+      handleResetSessionForm();
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'Failed to save slot');
@@ -322,7 +351,12 @@ const OperatorDashboard: React.FC = () => {
   /* -------------------- FILTERS -------------------- */
 
   const requestedSessions = useMemo(
-    () => sessions.filter(s => s.isRequested && s.requestStatus === 'OPEN'),
+    () =>
+      sessions.filter(
+        s =>
+          s.status === 'min_reached' ||
+          s.status === 'full'
+      ),
     [sessions],
   );
 
@@ -331,11 +365,14 @@ const OperatorDashboard: React.FC = () => {
       sessions.filter(s => {
         const d = new Date(s.timeStart);
         return (
-          !s.isRequested && d.toDateString() === selectedDate.toDateString()
+          s.status !== SESSION_STATUS.CLAIMED &&
+          s.status !== SESSION_STATUS.CANCELLED &&
+          d.toDateString() === selectedDate.toDateString()
         );
       }),
-    [sessions, selectedDate],
+    [sessions, selectedDate]
   );
+
 
   /* -------------------- WEEK DAYS -------------------- */
 
@@ -362,13 +399,13 @@ const OperatorDashboard: React.FC = () => {
     scheduledSessions.length === 0
       ? 0
       : Math.round(
-          (scheduledSessions.reduce(
-            (acc, s) => acc + s.bookedSeats / s.totalSeats,
-            0,
-          ) /
-            scheduledSessions.length) *
-            100,
-        );
+        (scheduledSessions.reduce(
+          (acc, s) => acc + s.bookedSeats / s.totalSeats,
+          0,
+        ) /
+          scheduledSessions.length) *
+        100,
+      );
 
   /* -------------------- RENDER -------------------- */
 
@@ -376,21 +413,13 @@ const OperatorDashboard: React.FC = () => {
 
   const handleCloseSlotModal = () => {
     setShowAddSession(false);
-    setSessionForm({
-      title: '',
-      activity: '',
-      date: new Date(),
-      time: new Date(),
-      boat: null,
-      captain: null,
-      image: null,
-      totalSeats: 0,
-      minRiders: 0,
-      pricePerSeat: 0,
-    });
+    handleResetSessionForm();
   };
 
-  /* -------------------- MODAL -------------------- */
+  /* -------------------- MODAL FOR SESSION SETAILS -------------------- */
+
+  const [showSessionDetails, setShowSessionDetails] = useState<boolean>(false)
+  const [selectedSession, setSelectedSession] = useState<any>({})
 
   return (
     <SafeAreaView style={styles.container}>
@@ -558,9 +587,9 @@ const OperatorDashboard: React.FC = () => {
                     time={
                       session.timeStart
                         ? session.timeStart.toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
                         : '--'
                     }
                     durationHours={session.durationMinutes / 60}
@@ -569,8 +598,13 @@ const OperatorDashboard: React.FC = () => {
                     pricePerSeat={session.pricePerSeat}
                     confirmed={confirmed}
                     fillPercent={fill}
-                    // onEdit={() => onEditSession(session)}
-                    // onCopy={() => console.log('copy session', session.id)}
+                    onPress={() => {
+                      setSelectedSession(session)
+                      setShowSessionDetails(true)
+
+                    }}
+                  // onEdit={() => {console.log(session)   }}
+                  // onCopy={() => console.log('copy session', session.id)}
                   />
                 );
               })
@@ -592,7 +626,7 @@ const OperatorDashboard: React.FC = () => {
                   <Text style={styles.sessionTitle}>{s.title}</Text>
                   <View style={styles.requestMeta}>
                     <MapPin size={14} />
-                    <Text>{s.location}</Text>
+                    <Text>{s.locationDetails?.name}</Text>
                   </View>
                 </View>
 
@@ -608,170 +642,31 @@ const OperatorDashboard: React.FC = () => {
       </ScrollView>
 
       {/* MOVE MODAL HERE */}
-      <Modal
+      <SessionDetailModal
+        visible={showSessionDetails}
+        onClose={() => setShowSessionDetails(false)}
+        session={selectedSession}
+      />
+
+      <CreateSessionModal
         visible={showAddSession}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={handleCloseSlotModal} // 👈 REQUIRED
-      >
-        <View style={styles.overlay}>
-          <View style={styles.modal}>
-            {/* HEADER */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>List Available Slot</Text>
-              <TouchableOpacity onPress={handleCloseSlotModal}>
-                <X size={20} />
-              </TouchableOpacity>
-            </View>
-
-            {/* BODY */}
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* TITLE */}
-              <Input
-                placeholder="Title"
-                value={sessionForm.title}
-                onChangeText={v => handleChangeAddSlot('title', v)}
-              />
-
-              {/* ACTIVITY */}
-              <Select
-                label="Activity"
-                options={AddSlotOptions}
-                value={sessionForm.activity}
-                onChange={v => handleChangeAddSlot('activity', v)}
-              />
-
-              {/* DATE & TIME */}
-              <View style={styles.row}>
-                <TouchableOpacity
-                  style={styles.inputBox}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text>{formatDate(sessionForm.date)}</Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={sessionForm.date}
-                    mode="date"
-                    onChange={(_, d) => {
-                      setShowDatePicker(false);
-                      d && handleChangeAddSlot('date', d);
-                    }}
-                  />
-                )}
-
-                {showTimePicker && (
-                  <DateTimePicker
-                    value={sessionForm.time}
-                    mode="time"
-                    onChange={(_, d) => {
-                      setShowTimePicker(false);
-                      d && handleChangeAddSlot('time', d);
-                    }}
-                  />
-                )}
-
-                <TouchableOpacity
-                  style={styles.inputBox}
-                  onPress={() => setShowTimePicker(true)}
-                >
-                  <Text>{formatTime(sessionForm.time)}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.row}>
-                {/* BOAT */}
-                <Select
-                  label="Boat"
-                  options={boatOptions}
-                  value={sessionForm.boat?.id}
-                  onChange={id => {
-                    const boat = boats.find(b => b.id === id);
-                    if (boat) {
-                      handleChangeAddSlot('boat', boat);
-                    }
-                  }}
-                />
-
-                {/* CAPTAIN */}
-                <Select
-                  label="Captain"
-                  options={captainOptions}
-                  value={sessionForm.captain?.id}
-                  onChange={id => {
-                    const captain = captains.find(c => c.id === id);
-                    if (captain) {
-                      handleChangeAddSlot('captain', captain);
-                    }
-                  }}
-                />
-              </View>
-
-              {/* IMAGE */}
-              <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
-                <Text>Select Image</Text>
-              </TouchableOpacity>
-
-              {sessionForm.image?.uri && (
-                <Image
-                  source={{ uri: sessionForm.image.uri }}
-                  style={styles.image}
-                />
-              )}
-
-              {/* REVENUE FLOOR */}
-              <View style={styles.revenueBox}>
-                <Text style={styles.revenueTitle}>
-                  Guaranteed Revenue Floor
-                </Text>
-
-                <View style={styles.row}>
-                  <TextInput
-                    keyboardType="numeric"
-                    style={styles.number}
-                    placeholder="Seats"
-                    value={String(sessionForm.totalSeats)}
-                    onChangeText={v =>
-                      handleChangeAddSlot('totalSeats', Number(v))
-                    }
-                  />
-                  <TextInput
-                    keyboardType="numeric"
-                    style={styles.number}
-                    placeholder="Min Riders"
-                    value={String(sessionForm.minRiders)}
-                    onChangeText={v =>
-                      handleChangeAddSlot('minRiders', Number(v))
-                    }
-                  />
-                  <TextInput
-                    keyboardType="numeric"
-                    style={styles.number}
-                    placeholder="Price"
-                    value={String(sessionForm.pricePerSeat)}
-                    onChangeText={v =>
-                      handleChangeAddSlot('pricePerSeat', Number(v))
-                    }
-                  />
-                </View>
-
-                <Text style={styles.revenueText}>
-                  Trip confirms automatically when revenue hits AED{' '}
-                  {sessionForm.minRiders * sessionForm.pricePerSeat}
-                </Text>
-              </View>
-
-              {/* SUBMIT */}
-              <Button
-                label={isUploading ? 'Listing...' : 'List Session'}
-                onPress={handleSubmitAddSlot}
-                disabled={isUploading}
-              />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={handleCloseSlotModal}
+        boatOptions={boatOptions}
+        captainOptions={captainOptions}
+        boats={boats}
+        captains={captains}
+        handleSubmitAddSlot={handleSubmitAddSlot}
+        isUploading={isUploading}
+        sessionForm={sessionForm}
+        handleChangeAddSlot={handleChangeAddSlot}
+        formatDate={formatDate}
+        formatTime={formatTime}
+        pickImage={pickImage}
+        showDatePicker={showDatePicker}
+        showTimePicker={showTimePicker}
+        setShowDatePicker={setShowDatePicker}
+        setShowTimePicker={setShowTimePicker}
+      />
     </SafeAreaView>
   );
 };
@@ -1055,4 +950,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
+
+  ////////// details modal
+
+  detailRow: {
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+
+  detailKey: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#666",
+    textTransform: "capitalize",
+  },
+
+  detailValue: {
+    fontSize: 14,
+    color: "#111",
+    marginTop: 4,
+  },
+
 });

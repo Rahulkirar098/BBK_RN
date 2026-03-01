@@ -67,6 +67,52 @@ export const Setting = () => {
     return unsubscribeAuth;
   }, []);
 
+  const [cards, setCards] = useState<any[]>([]);
+
+  useEffect(() => {
+    const currentUser = auth().currentUser;
+    if (!currentUser) return;
+
+    const unsubscribe = firestore()
+      .collection('users')
+      .doc(currentUser.uid)
+      .collection('paymentMethods')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        const list: any[] = [];
+
+        snapshot.forEach(doc => {
+          list.push({
+            id: doc.id,
+            ...doc.data(),
+          });
+        });
+
+        setCards(list);
+      });
+
+    return () => unsubscribe();
+  }, []);
+
+  const deleteCard = async (cardId: string) => {
+    try {
+      const currentUser = auth().currentUser;
+      if (!currentUser) return;
+
+      await firestore()
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('paymentMethods')
+        .doc(cardId)
+        .delete();
+
+      Alert.alert('Card deleted successfully ✅');
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Error deleting card');
+    }
+  };
+
   /* ---------------- LOGOUT ---------------- */
   const logout = async () => {
     await auth().signOut();
@@ -97,18 +143,19 @@ export const Setting = () => {
       </SafeAreaView>
     );
   }
+  console.log(riderData?.userProfile?.emiratesId)
   /* ---------------- MAIN UI ---------------- */
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <SettingsHeader goBack={goBack} />
-        <EmiratesIdSection />
-        <PaymentMethodsSection />
+        <EmiratesIdSection idData={riderData?.userProfile?.emiratesId}/>
+        <PaymentMethodsSection cards={cards} onRemove={deleteCard} />
         <LanguageNotificationsSection
           language={riderData?.userProfile?.language}
-          setLanguage={() => {}}
+          setLanguage={() => { }}
         />
-        <SettingsActions onResetData={() => {}} onLogout={logout} />
+        <SettingsActions onResetData={() => { }} onLogout={logout} />
       </View>
     </SafeAreaView>
   );
