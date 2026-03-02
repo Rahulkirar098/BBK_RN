@@ -5,10 +5,11 @@ import {
     Modal,
     TouchableOpacity,
     StyleSheet,
+    Platform
 } from "react-native";
-import MapView, { Marker, LatLng, Region } from "react-native-maps";
+import MapView, { Marker, LatLng, Region, PROVIDER_GOOGLE } from "react-native-maps";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-import { colors, horizontalScale, verticalScale } from "../../theme";
+import { colors, horizontalScale, platform, verticalScale } from "../../theme";
 
 type Props = {
     visible: boolean;
@@ -17,8 +18,8 @@ type Props = {
 };
 
 const INITIAL_REGION: Region = {
-    latitude: 37.78825,
-    longitude: -122.4324,
+    latitude: 25.0805,
+    longitude: 55.1400,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
 };
@@ -30,6 +31,7 @@ export default function LocationPickerModal({
 }: Props) {
     const [location, setLocation] = useState<LatLng | null>(null);
     const [googlePlace, setGooglePlace] = useState<any>(null);
+    const [region, setRegion] = useState<Region>(INITIAL_REGION);
     const mapRef = useRef<MapView | null>(null);
 
     const handlePlaceSelect = (details: any) => {
@@ -63,17 +65,15 @@ export default function LocationPickerModal({
     };
 
     const zoom = (factor: number) => {
-        if (!location) return;
+        if (!mapRef.current) return;
 
-        mapRef.current?.animateToRegion(
-            {
-                latitude: location.latitude,
-                longitude: location.longitude,
-                latitudeDelta: INITIAL_REGION.latitudeDelta * factor,
-                longitudeDelta: INITIAL_REGION.longitudeDelta * factor,
-            },
-            800
-        );
+        const newRegion: Region = {
+            ...region,
+            latitudeDelta: region.latitudeDelta * factor,
+            longitudeDelta: region.longitudeDelta * factor,
+        };
+
+        mapRef.current.animateToRegion(newRegion, 300);
     };
 
     return (
@@ -94,7 +94,7 @@ export default function LocationPickerModal({
                             language: "en",
                         }}
                         styles={{
-                            container: { flex: 0 },
+                            container: { flex: 0, zIndex: 99 },
                             listView: { backgroundColor: "#000" },
                         }}
                     />
@@ -102,13 +102,15 @@ export default function LocationPickerModal({
                     {/* Map */}
                     <MapView
                         ref={mapRef}
+                        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
                         style={styles.map}
                         initialRegion={INITIAL_REGION}
                         zoomEnabled={true}
-                        zoomControlEnabled={true}   // ✅ Android only
+                        zoomControlEnabled={false}
                         scrollEnabled={true}
                         pitchEnabled={true}
                         rotateEnabled={true}
+                        onRegionChangeComplete={(reg) => setRegion(reg)}
                     >
                         {location && (
                             <Marker
@@ -121,7 +123,7 @@ export default function LocationPickerModal({
                         )}
                     </MapView>
 
-                    <View style={styles.zoomContainer}>
+                     <View style={styles.zoomContainer}>
                         <TouchableOpacity
                             style={styles.zoomBtn}
                             onPress={() => zoom(0.5)} // Zoom In
@@ -172,6 +174,7 @@ const styles = StyleSheet.create({
         borderRadius: horizontalScale(10),
         height: verticalScale(600),
         maxHeight: verticalScale(600),
+        overflow: "hidden"
     },
     map: {
         flex: 1,
@@ -182,17 +185,17 @@ const styles = StyleSheet.create({
     cancelBtn: {
         flex: 1,
         padding: 15,
-        backgroundColor: "#aaa",
+        backgroundColor: colors.gray400,
         alignItems: "center",
     },
     confirmBtn: {
         flex: 1,
         padding: 15,
-        backgroundColor: "#0891B2",
+        backgroundColor: colors.primary,
         alignItems: "center",
     },
     btnText: {
-        color: "#fff",
+        color: colors.white,
         fontWeight: "600",
     },
     ///////
@@ -204,7 +207,7 @@ const styles = StyleSheet.create({
     },
 
     zoomBtn: {
-        backgroundColor: "#0891B2",
+        backgroundColor: colors.primary,
         width: 40,
         height: 40,
         borderRadius: 20,
@@ -214,7 +217,7 @@ const styles = StyleSheet.create({
     },
 
     zoomText: {
-        color: "#fff",
+        color: colors.white,
         fontSize: 20,
         fontWeight: "bold",
     },
