@@ -34,7 +34,13 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>This app needs location access to find and book seats near you.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>This app needs calendar access to help you schedule your seat bookings.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to let you upload profile pictures.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to let you take profile pictures.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

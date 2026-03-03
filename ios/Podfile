@@ -30,6 +30,9 @@ target 'BookBySeat' do
   # React Native Firebase recommends static frameworks
   $RNFirebaseAsStaticFramework = true
 
+  # Enable debug symbols for Hermes framework
+  $RN_HERMES_DEBUG_SYMBOLS = true
+
   post_install do |installer|
     react_native_post_install(
       installer,
@@ -50,6 +53,17 @@ target 'BookBySeat' do
         target.build_configurations.each do |config|
           config.build_settings['MODULEMAP_FILE'] = ''
           config.build_settings['DEFINES_MODULE'] = 'NO'
+        end
+      end
+      # Enable debug symbols for Hermes framework
+      if target.name.start_with?('hermes')
+        target.build_configurations.each do |config|
+          config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
+          config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'NO'
+          config.build_settings['COPY_PHASE_STRIP'] = 'NO'
+          config.build_settings['DEPLOYMENT_POSTPROCESSING'] = 'NO'
+          config.build_settings['ENABLE_BITCODE'] = 'NO'
+          config.build_settings['GCC_GENERATE_DEBUGGING_SYMBOLS'] = 'YES'
         end
       end
     end
