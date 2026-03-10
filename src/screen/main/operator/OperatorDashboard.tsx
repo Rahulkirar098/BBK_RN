@@ -26,9 +26,6 @@ import {
   IconBtn,
   Stat,
   Empty,
-  Select,
-  Input,
-  Button,
 } from '../../../components/atoms';
 import { SessionCard } from '../../../components/molicules';
 
@@ -39,7 +36,6 @@ import {
   typography,
 } from '../../../theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 //Firebase
 import { getApp } from '@react-native-firebase/app';
@@ -60,12 +56,10 @@ import {
 } from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 
-import { AddSlotOptions } from '../../../utils';
 import { ActiveStatus, SESSION_STATUS } from '../../../type';
 import { pickImageFromGallery } from '../../../utils/common_logic';
 import { CreateSessionModal, SessionDetailModal } from '../../../components/modals';
-
-
+import { fetchUserCollection } from '../../../services';
 
 const OperatorDashboard: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -191,7 +185,7 @@ const OperatorDashboard: React.FC = () => {
         imageUrl = await imageRef.getDownloadURL();
       }
 
-      const selectedOption = AddSlotOptions.find(
+      const selectedOption = activities.find(
         item => item.value === sessionForm.activity
       );
 
@@ -223,10 +217,12 @@ const OperatorDashboard: React.FC = () => {
 
         createdAt: serverTimestamp(),
         location: sessionForm.location,
-        locationDetails: sessionForm.locationDetails
+        locationDetails: sessionForm.locationDetails,
+
+        operator_id: uid
       };
 
-      await addDoc(collection(db, 'slots', uid, 'slots'), payload);
+      await addDoc(collection(db, 'slots'), payload);
 
       // 🔄 Reset form
       setShowAddSession(false);
@@ -242,73 +238,56 @@ const OperatorDashboard: React.FC = () => {
 
   /* -------------------- FIREBASE -------------------- */
   const [sessions, setSessions] = useState<any[]>([]);
-  const [boats, setBoats] = useState<any[]>([]);
-  const [captains, setCaptains] = useState<any[]>([]);
   const [requests, setRequests] = useState<any>([]);
 
   const app = getApp();
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const uid: any = auth.currentUser?.uid;
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
     if (!uid) return;
 
     const q = query(
-      collection(db, 'slots', uid, 'slots'),
-      orderBy('createdAt', 'desc'),
+      collection(db, "slots"),
+      where("operator_id", "==", uid)
     );
 
     const unsubscribe = onSnapshot(q, snapshot => {
-      const data = snapshot.docs.map((docSnap: any) => {
-        const d = docSnap.data();
-        return {
-          id: docSnap.id,
-          ...d,
-          createdAt: d.createdAt?.toDate?.() ?? null,
-          timeStart: d.timeStart?.toDate?.() ?? null,
-        };
-      });
-      setSessions(data);
+      const list = snapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setSessions(list);
     });
 
     return unsubscribe;
-  }, []);
+  }, [uid]);
+
+  const [activities, setActivities] = useState<Array<any>>([])
+  const [boats, setBoats] = useState<Array<any>>([])
+  const [captions, setCaptains] = useState<Array<any>>([])
+
+  const fetchActivities = async () => {
+    const data = await fetchUserCollection("activities", uid);
+    setActivities(data);
+  };
+
+  const fetchBoats = async () => {
+    const data = await fetchUserCollection("boats", uid);
+    setBoats(data);
+  };
+
+  const fetchCaptains = async () => {
+    const data = await fetchUserCollection("captains", uid);
+    setCaptains(data);
+  };
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
-
-    const unsubBoats = onSnapshot(
-      collection(db, 'users', uid, 'boats'),
-      snap => {
-        setBoats(
-          snap.docs.map((d: any) => ({
-            id: d.data()?.id,
-            ...d?.data(),
-            label: d.data()?.boatName,
-            value: d.data()?.id,
-          })),
-        );
-      },
-    );
-    const unsubCaptains = onSnapshot(
-      collection(db, 'users', uid, 'captains'),
-      snap => {
-        setCaptains(
-          snap.docs.map((d: any) => ({
-            id: d.id,
-            ...d.data(),
-            label: d.data().name,
-            value: d.id,
-          })),
-        );
-      },
-    );
-    return () => {
-      unsubBoats();
-      unsubCaptains();
-    };
+    fetchActivities();
+    fetchBoats();
+    fetchCaptains();
   }, []);
 
   useEffect(() => {
@@ -333,7 +312,7 @@ const OperatorDashboard: React.FC = () => {
     value: boat.id,
   }));
 
-  const captainOptions = captains.map(captain => ({
+  const captainOptions = captions.map(captain => ({
     label: captain.name,
     value: captain.id,
   }));
@@ -342,7 +321,7 @@ const OperatorDashboard: React.FC = () => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
 
-    await updateDoc(doc(db, 'slots', uid, 'slots', sessionId), {
+    await updateDoc(doc(db, 'slots', sessionId), {
       requestStatus: 'CLAIMED',
       isRequested: false,
     });
@@ -363,16 +342,15 @@ const OperatorDashboard: React.FC = () => {
   const scheduledSessions = useMemo(
     () =>
       sessions.filter(s => {
-        const d = new Date(s.timeStart);
+        const d = s.timeStart?.toDate();
         return (
           s.status !== SESSION_STATUS.CLAIMED &&
           s.status !== SESSION_STATUS.CANCELLED &&
-          d.toDateString() === selectedDate.toDateString()
+          d?.toDateString() === selectedDate.toDateString()
         );
       }),
     [sessions, selectedDate]
   );
-
 
   /* -------------------- WEEK DAYS -------------------- */
 
@@ -418,8 +396,10 @@ const OperatorDashboard: React.FC = () => {
 
   /* -------------------- MODAL FOR SESSION SETAILS -------------------- */
 
-  const [showSessionDetails, setShowSessionDetails] = useState<boolean>(false)
-  const [selectedSession, setSelectedSession] = useState<any>({})
+  const [showSessionDetails, setShowSessionDetails] = useState<boolean>(false);
+  const [selectedSession, setSelectedSession] = useState<any>({});
+
+  console.log(selectedDate, "===@@@")
 
   return (
     <SafeAreaView style={styles.container}>
@@ -541,10 +521,13 @@ const OperatorDashboard: React.FC = () => {
                 {weekDays.map((d, i) => {
                   const selected =
                     d.toDateString() === selectedDate.toDateString();
+                  console.log(d.toDateString(), selectedDate.toDateString())
                   return (
                     <TouchableOpacity
                       key={i}
-                      onPress={() => setSelectedDate(d)}
+                      onPress={() => {
+                        setSelectedDate(d);
+                      }}
                       style={[styles.dayBtn, selected && styles.daySelected]}
                     >
                       <Text
@@ -586,7 +569,7 @@ const OperatorDashboard: React.FC = () => {
                     title={session.title}
                     time={
                       session.timeStart
-                        ? session.timeStart.toLocaleTimeString([], {
+                        ? session.timeStart?.toDate().toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })
@@ -654,7 +637,7 @@ const OperatorDashboard: React.FC = () => {
         boatOptions={boatOptions}
         captainOptions={captainOptions}
         boats={boats}
-        captains={captains}
+        captains={captions}
         handleSubmitAddSlot={handleSubmitAddSlot}
         isUploading={isUploading}
         sessionForm={sessionForm}
@@ -666,6 +649,7 @@ const OperatorDashboard: React.FC = () => {
         showTimePicker={showTimePicker}
         setShowDatePicker={setShowDatePicker}
         setShowTimePicker={setShowTimePicker}
+        activities={activities}
       />
     </SafeAreaView>
   );

@@ -67,8 +67,6 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
     }
   };
 
-
-
   return (
     <Modal
       visible={visible}

@@ -4,4 +4,7 @@ export * from './paymentModal';
 export * from './createSessionModal';
 export * from './sessionDetail';
 export * from './mapModal';
-export * from "./infoModal"
+export * from './infoModal';
+export * from './boatModal';
+export * from './captionModal';
+export * from './activityModal';

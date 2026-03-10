@@ -2,13 +2,14 @@ export type ModalTab = 'boats' | 'captains';
 export type ActiveStatus = 'SCHEDULE' | 'REQUESTS';
 
 export type Boat = {
-  id: string;
+  id?: string;
   boatName: string;
   boatCompany: string;
   boatCapacity: number;
   boatModel: string;
   status: 'Active' | 'UnActive';
   imageUrl?: string;
+  caption_id: string;
 };
 
 export type Captain = {
@@ -46,10 +47,9 @@ export type OperatorProfileData = {
 export type TimeFilter = 'NOW' | 'TOMORROW' | 'THIS_WEEK';
 
 export enum SESSION_STATUS {
-  OPEN = "open",
-  MIN_REACHED = "min_reached",
-  FULL = "full",
-  CLAIMED = "claimed",
-  CANCELLED = "cancelled",
+  OPEN = 'open',
+  MIN_REACHED = 'min_reached',
+  FULL = 'full',
+  CLAIMED = 'claimed',
+  CANCELLED = 'cancelled',
 }
-

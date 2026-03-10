@@ -18,8 +18,7 @@ import {
 } from 'lucide-react-native';
 
 import { Button, Input, Select } from '../atoms';
-import { AddSlotOptions } from '../../utils';
-import { colors, typography, verticalScale } from '../../theme';
+import { colors, horizontalScale, typography, verticalScale } from '../../theme';
 import LocationPickerModal from './mapModal';
 
 interface CreateSessionModalProps {
@@ -47,6 +46,8 @@ interface CreateSessionModalProps {
     formatTime: (value: any) => any;
 
     pickImage: () => void;
+
+    activities: Array<any>
 }
 
 export const CreateSessionModal = ({
@@ -67,11 +68,9 @@ export const CreateSessionModal = ({
     showTimePicker,
     setShowTimePicker,
     pickImage,
+    activities
 }: CreateSessionModalProps) => {
     const [mapVisible, setMapVisible] = useState(false);
-
-    console.log(sessionForm?.locationDetails?.name)
-
     return (
         <Modal
             visible={visible}
@@ -99,7 +98,7 @@ export const CreateSessionModal = ({
 
                         <Select
                             label="Activity"
-                            options={AddSlotOptions}
+                            options={activities}
                             value={sessionForm.activity}
                             onChange={v => handleChangeAddSlot('activity', v)}
                         />
@@ -192,33 +191,48 @@ export const CreateSessionModal = ({
                             <Text style={styles.revenueTitle}>Guaranteed Revenue Floor</Text>
 
                             <View style={styles.row}>
-                                <TextInput
-                                    keyboardType="numeric"
-                                    style={styles.number}
-                                    placeholder="Seats"
-                                    value={String(sessionForm.totalSeats)}
-                                    onChangeText={v =>
-                                        handleChangeAddSlot('totalSeats', Number(v))
-                                    }
-                                />
-                                <TextInput
-                                    keyboardType="numeric"
-                                    style={styles.number}
-                                    placeholder="Min Riders"
-                                    value={String(sessionForm.minRiders)}
-                                    onChangeText={v =>
-                                        handleChangeAddSlot('minRiders', Number(v))
-                                    }
-                                />
-                                <TextInput
-                                    keyboardType="numeric"
-                                    style={styles.number}
-                                    placeholder="Price"
-                                    value={String(sessionForm.pricePerSeat)}
-                                    onChangeText={v =>
-                                        handleChangeAddSlot('pricePerSeat', Number(v))
-                                    }
-                                />
+                                <View style={styles.number}>
+                                    <TextInput
+                                        keyboardType="numeric"
+                                        placeholder="Seats"
+                                        style={{
+                                            textAlign: "center",
+                                            padding: horizontalScale(10),
+                                        }}
+                                        value={String(sessionForm.totalSeats)}
+                                        onChangeText={v =>
+                                            handleChangeAddSlot('totalSeats', Number(v))
+                                        }
+                                    />
+                                </View>
+                                <View style={styles.number}>
+                                    <TextInput
+                                        keyboardType="numeric"
+                                        placeholder="Min Riders"
+                                        style={{
+                                            textAlign: "center",
+                                            padding: horizontalScale(10),
+                                        }}
+                                        value={String(sessionForm.minRiders)}
+                                        onChangeText={v =>
+                                            handleChangeAddSlot('minRiders', Number(v))
+                                        }
+                                    />
+                                </View>
+                                <View style={styles.number}>
+                                    <TextInput
+                                        keyboardType="numeric"
+                                        placeholder="Price"
+                                        style={{
+                                            textAlign: "center",
+                                            padding: horizontalScale(10),
+                                        }}
+                                        value={String(sessionForm.pricePerSeat)}
+                                        onChangeText={v =>
+                                            handleChangeAddSlot('pricePerSeat', Number(v))
+                                        }
+                                    />
+                                </View>
                             </View>
 
                             <Text style={styles.revenueText}>
@@ -339,7 +353,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.primaryBorder,
         borderRadius: 10,
-        paddingVertical: 10,
         textAlign: 'center',
         fontWeight: '700',
         backgroundColor: colors.white,

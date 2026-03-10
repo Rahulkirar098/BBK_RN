@@ -269,10 +269,7 @@ export const RiderDashboard = () => {
       console.log('Payment authorized:', paymentIntent.id);
 
       // 🔥 Call backend to finalize booking
-      const baseUrl =
-        Platform.OS === 'android'
-          ? 'http://10.0.2.2:3000'
-          : 'http://localhost:3000';
+      const baseUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
       const finalizeResponse = await fetch(`${baseUrl}/finalize-booking`, {
         method: 'POST',
