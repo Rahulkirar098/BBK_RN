@@ -13,6 +13,7 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 /* ---------------- FIREBASE ---------------- */
 
 import { getApp } from '@react-native-firebase/app';
@@ -50,6 +51,7 @@ type State = {
   emiratesBack: any | null;
   loading: boolean;
   error: string | null;
+  phone_no: string;
 };
 
 /* ---------------- REDUCER ---------------- */
@@ -64,6 +66,7 @@ const initialState: State = {
   emiratesBack: null,
   loading: false,
   error: null,
+  phone_no: ""
 };
 
 function reducer(state: State, action: any): State {
@@ -99,8 +102,8 @@ const RegisterScreen = () => {
     roleParam === 'rider'
       ? 'RIDER'
       : roleParam === 'operator'
-      ? 'OPERATOR'
-      : null;
+        ? 'OPERATOR'
+        : null;
 
   if (!userRole) {
     return (
@@ -136,9 +139,10 @@ const RegisterScreen = () => {
       language,
       emiratesFront,
       emiratesBack,
+      phone_no
     } = state;
 
-    if (!name || !language || !emiratesFront || !emiratesBack) {
+    if (!name || !language || !emiratesFront || !emiratesBack || !phone_no) {
       return dispatch({
         type: 'SET_ERROR',
         value: 'Please complete all required fields.',
@@ -182,6 +186,7 @@ const RegisterScreen = () => {
               : { agencyName, licenceNumber }),
             complianceStatus: 'PENDING',
             createdAt: serverTimestamp(),
+            phone_no
           },
         },
         { merge: true },
@@ -202,7 +207,11 @@ const RegisterScreen = () => {
   /* ---------- UI ---------- */
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+   <KeyboardAwareScrollView 
+      contentContainerStyle={styles.container}
+      enableOnAndroid={true}
+      extraScrollHeight={20}
+    >
       <View style={styles.card}>
         <Text style={styles.title}>
           {userRole === 'RIDER'
@@ -218,6 +227,15 @@ const RegisterScreen = () => {
           onChangeText={v =>
             dispatch({ type: 'SET_FIELD', field: 'name', value: v })
           }
+        />
+
+        <Input
+          placeholder="Phone NO"
+          value={state.phone_no}
+          onChangeText={v =>
+            dispatch({ type: 'SET_FIELD', field: 'phone_no', value: v })
+          }
+          keyboardType='numeric'
         />
 
         {userRole === 'RIDER' && (
@@ -299,7 +317,7 @@ const RegisterScreen = () => {
           )}
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 };
 

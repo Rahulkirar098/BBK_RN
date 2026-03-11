@@ -1,32 +1,35 @@
-import { collection, getDocs, query, where } from '@react-native-firebase/firestore';
+import { collection, query, where, onSnapshot } from '@react-native-firebase/firestore';
 import firestore from '@react-native-firebase/firestore';
 
 const db = firestore();
 
-export const fetchUserCollection = async (
+export const listenUserCollection = (
   collectionName: string,
-  uid: string
+  uid: string,
+  setState: (data: any[]) => void
 ) => {
 
-  try {
+  const q = query(
+    collection(db, collectionName),
+    where("operator_id", "==", uid)
+  );
 
-    const q = query(
-      collection(db, collectionName),
-      where("operator_id", "==", uid)
-    );
+  const unsubscribe = onSnapshot(
+    q,
+    (snapshot) => {
 
-    const snapshot = await getDocs(q);
+      const list = snapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-    const list = snapshot.docs.map((doc: any) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+      setState(list);
 
-    return list;
+    },
+    (error) => {
+      console.log(`Realtime ${collectionName} error:`, error);
+    }
+  );
 
-  } catch (error) {
-    console.log(`Fetch ${collectionName} error:`, error);
-    return [];
-  }
-
+  return unsubscribe; // important
 };

@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   FlatList,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,31 +9,26 @@ import {
   Image,
   Alert,
 } from 'react-native';
+
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Pencil, Trash2, X } from 'lucide-react-native';
+
 import {
   colors,
   horizontalScale,
   verticalScale,
   typography,
 } from '../../theme';
+
 import { Button, Input, Select } from '../atoms';
 import { pickImageFromGallery } from '../../utils/common_logic';
 import ImageResizer from 'react-native-image-resizer';
 import { statusOptions } from '../../utils';
 
-//--------Firebase--------//
+// Firebase
 import { getApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
-import firestore, {
-  getFirestore,
-  doc,
-  collection,
-  deleteDoc,
-  serverTimestamp,
-  getDocs,
-  query,
-  where,
-} from '@react-native-firebase/firestore';
+import firestore, { getFirestore, serverTimestamp } from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 
 const emptyBoat: any = {
@@ -51,20 +45,20 @@ export const BoatManagerModal = ({
   visible,
   onClose,
   data,
-  handleFetch,
   handleDelete,
 }: any) => {
-  //Firebase
+
   const app = getApp();
   const auth = getAuth(app);
   const db = getFirestore(app);
+
   const uid = auth.currentUser?.uid;
 
   const [editingBoat, setEditingBoat] = useState(false);
   const [boat, setBoat] = useState(emptyBoat);
   const [uploading, setUploading] = useState(false);
 
-  // IMAGE PICKER
+  // IMAGE PICK
   const handlePickImage = async () => {
     const asset = await pickImageFromGallery();
 
@@ -84,10 +78,9 @@ export const BoatManagerModal = ({
     });
   };
 
-  // 🔥 UPLOAD IMAGE WITH LOADER
+  // IMAGE UPLOAD
   const uploadImage = async (uri: string, path: string) => {
     try {
-      // FIX for iOS
       const uploadUri = uri.replace('file://', '');
 
       const reference = storage().ref(path);
@@ -99,7 +92,6 @@ export const BoatManagerModal = ({
       return url;
     } catch (error) {
       console.log('Upload error:', error);
-      setUploading(false);
       return '';
     }
   };
@@ -119,15 +111,18 @@ export const BoatManagerModal = ({
   // SAVE
   const saveBoat = async () => {
     if (!boat.boatName) return;
+
     try {
       setUploading(true);
+
       let imageUrl = boat.imageUrl;
+
       if (boat.imageUrl && boat.imageUrl.startsWith('file')) {
         const path = `boats/${uid}/${Date.now()}.jpg`;
         imageUrl = await uploadImage(boat.imageUrl, path);
       }
 
-      const data = {
+      const payload = {
         ...boat,
         imageUrl,
         operator_id: uid,
@@ -135,45 +130,48 @@ export const BoatManagerModal = ({
       };
 
       if (boat.id) {
-        await firestore().collection('boats').doc(boat.id).update(data);
-        handleFetch();
-        setUploading(false);
+        await firestore().collection('boats').doc(boat.id).update(payload);
       } else {
-        await firestore().collection('boats').add(data);
-        handleFetch();
-        setUploading(false);
+        await firestore().collection('boats').add(payload);
       }
+
       setEditingBoat(false);
       setBoat(emptyBoat);
+
     } catch (error) {
       Alert.alert('Save boat error:', String(error));
     }
+
+    setUploading(false);
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
+
       <View style={styles.modal}>
         <View style={styles.modalCard}>
+
           {!editingBoat ? (
+
             <FlatList
               data={data}
               keyExtractor={item => item.id}
+              showsVerticalScrollIndicator={false}
+
               ListHeaderComponent={
-                <View
-                  style={{
-                    justifyContent: 'space-between',
-                    flexDirection: 'row',
-                  }}
-                >
+                <View style={styles.headerRow}>
                   <Text style={styles.modalTitle}>Boats</Text>
                   <X size={25} onPress={onClose} />
                 </View>
               }
+
               renderItem={({ item }) => (
                 <View style={styles.itemRow}>
+
                   <Text>{item.boatName}</Text>
 
                   <View style={styles.iconRow}>
+
                     <TouchableOpacity onPress={() => handleEdit(item)}>
                       <Pencil size={18} />
                     </TouchableOpacity>
@@ -181,26 +179,36 @@ export const BoatManagerModal = ({
                     <TouchableOpacity onPress={() => handleDelete(item.id)}>
                       <Trash2 size={18} />
                     </TouchableOpacity>
+
                   </View>
+
                 </View>
               )}
+
               ListFooterComponent={
                 <Button label="Add New Boat" onPress={handleCreate} />
               }
             />
+
           ) : (
-            <ScrollView>
-              <View
-                style={{
-                  justifyContent: 'space-between',
-                  flexDirection: 'row',
-                }}
-              >
+
+            <KeyboardAwareScrollView
+              enableOnAndroid
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+
+              <View style={styles.headerRow}>
                 <Text style={styles.modalTitle}>Boat Details</Text>
-                <X size={25} onPress={() => {
-                  setBoat(emptyBoat);
-                  setEditingBoat(false);
-                }} />
+
+                <X
+                  size={25}
+                  onPress={() => {
+                    setBoat(emptyBoat);
+                    setEditingBoat(false);
+                  }}
+                />
               </View>
 
               <Input
@@ -219,6 +227,7 @@ export const BoatManagerModal = ({
                 placeholder="Boat Model"
                 value={boat.boatModel}
                 onChangeText={v => setBoat({ ...boat, boatModel: v })}
+                keyboardType="numeric"
               />
 
               <Input
@@ -241,7 +250,10 @@ export const BoatManagerModal = ({
               />
 
               {boat.imageUrl !== '' && (
-                <Image source={{ uri: boat.imageUrl }} style={styles.preview} />
+                <Image
+                  source={{ uri: boat.imageUrl }}
+                  style={styles.preview}
+                />
               )}
 
               <Button label="Pick Image" onPress={handlePickImage} />
@@ -251,10 +263,14 @@ export const BoatManagerModal = ({
                 label={uploading ? 'Saving...' : 'Save Boat'}
                 onPress={saveBoat}
               />
-            </ScrollView>
+
+            </KeyboardAwareScrollView>
+
           )}
+
         </View>
       </View>
+
     </Modal>
   );
 };
@@ -264,7 +280,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: horizontalScale(20),
-    paddingTop: verticalScale(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -272,15 +287,21 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: colors.white,
     padding: 16,
-    maxHeight: 500,
+    maxHeight: '80%',
     width: '100%',
     borderRadius: horizontalScale(20),
   },
 
   modalTitle: {
     ...typography.screenTitle,
-    marginBottom: 20,
     color: colors.textPrimary,
+  },
+
+  headerRow: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(10),
   },
 
   itemRow: {
@@ -297,15 +318,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  closeBtn: {
-    backgroundColor: colors.gray900,
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 20,
-    alignItems: 'center',
-    width: '100%',
-  },
-
   preview: {
     width: '100%',
     height: 150,
@@ -313,4 +325,5 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
     alignSelf: 'center',
   },
+
 });

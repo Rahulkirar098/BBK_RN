@@ -56,6 +56,7 @@ export const PaymentModal = ({
     try {
       setLoading(true);
 
+
       const storedUser = await AsyncStorage.getItem('bbs_user');
       if (!storedUser) throw new Error('User not logged in');
 
@@ -65,6 +66,8 @@ export const PaymentModal = ({
         Platform.OS === 'android'
           ? 'http://10.0.2.2:3000'
           : 'http://localhost:3000';
+
+              console.log(session)
 
       const response = await fetch(`${baseUrl}/create-payment-intent`, {
         method: 'POST',

@@ -191,42 +191,37 @@ export const CreateSessionModal = ({
                             <Text style={styles.revenueTitle}>Guaranteed Revenue Floor</Text>
 
                             <View style={styles.row}>
-                                <View style={styles.number}>
+                                <View style={{ width: horizontalScale(100), gap: horizontalScale(5) }}>
+                                    <Text style={{ textAlign: 'center' }}>Seats</Text>
                                     <TextInput
                                         keyboardType="numeric"
                                         placeholder="Seats"
-                                        style={{
-                                            textAlign: "center",
-                                            padding: horizontalScale(10),
-                                        }}
+                                        style={styles.number}
                                         value={String(sessionForm.totalSeats)}
                                         onChangeText={v =>
                                             handleChangeAddSlot('totalSeats', Number(v))
                                         }
                                     />
                                 </View>
-                                <View style={styles.number}>
+
+                                <View style={{ width: horizontalScale(100), gap: horizontalScale(5) }}>
+                                    <Text style={{ textAlign: 'center' }}>Min Riders</Text>
                                     <TextInput
                                         keyboardType="numeric"
                                         placeholder="Min Riders"
-                                        style={{
-                                            textAlign: "center",
-                                            padding: horizontalScale(10),
-                                        }}
+                                        style={styles.number}
                                         value={String(sessionForm.minRiders)}
                                         onChangeText={v =>
                                             handleChangeAddSlot('minRiders', Number(v))
                                         }
                                     />
                                 </View>
-                                <View style={styles.number}>
+                                <View style={{ width: horizontalScale(100), gap: horizontalScale(5) }}>
+                                    <Text style={{ textAlign: 'center' }}>Price</Text>
                                     <TextInput
                                         keyboardType="numeric"
                                         placeholder="Price"
-                                        style={{
-                                            textAlign: "center",
-                                            padding: horizontalScale(10),
-                                        }}
+                                        style={styles.number}
                                         value={String(sessionForm.pricePerSeat)}
                                         onChangeText={v =>
                                             handleChangeAddSlot('pricePerSeat', Number(v))
@@ -274,6 +269,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
         borderRadius: 16,
         padding: 16,
+        height: verticalScale(500)
     },
 
     modalHeader: {
@@ -356,5 +352,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontWeight: '700',
         backgroundColor: colors.white,
+        padding: horizontalScale(10),
     },
 });

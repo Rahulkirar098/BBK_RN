@@ -5,10 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Modal,
-  TextInput,
   Alert,
-  Image,
 } from 'react-native';
 import {
   Calendar,
@@ -18,7 +15,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  X,
   BellRing,
   MapPin,
 } from 'lucide-react-native';
@@ -59,7 +55,7 @@ import storage from '@react-native-firebase/storage';
 import { ActiveStatus, SESSION_STATUS } from '../../../type';
 import { pickImageFromGallery } from '../../../utils/common_logic';
 import { CreateSessionModal, SessionDetailModal } from '../../../components/modals';
-import { fetchUserCollection } from '../../../services';
+import { listenUserCollection } from '../../../services';
 
 const OperatorDashboard: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -265,30 +261,39 @@ const OperatorDashboard: React.FC = () => {
     return unsubscribe;
   }, [uid]);
 
-  const [activities, setActivities] = useState<Array<any>>([])
-  const [boats, setBoats] = useState<Array<any>>([])
-  const [captions, setCaptains] = useState<Array<any>>([])
-
-  const fetchActivities = async () => {
-    const data = await fetchUserCollection("activities", uid);
-    setActivities(data);
-  };
-
-  const fetchBoats = async () => {
-    const data = await fetchUserCollection("boats", uid);
-    setBoats(data);
-  };
-
-  const fetchCaptains = async () => {
-    const data = await fetchUserCollection("captains", uid);
-    setCaptains(data);
-  };
+  const [activities, setActivities] = useState<Array<any>>([]);
+  const [boats, setBoats] = useState<Array<any>>([]);
+  const [captains, setCaptains] = useState<Array<any>>([]);
 
   useEffect(() => {
-    fetchActivities();
-    fetchBoats();
-    fetchCaptains();
-  }, []);
+
+    if (!uid) return;
+
+    const unsubActivities = listenUserCollection(
+      "activities",
+      uid,
+      setActivities
+    );
+
+    const unsubBoats = listenUserCollection(
+      "boats",
+      uid,
+      setBoats
+    );
+
+    const unsubCaptains = listenUserCollection(
+      "captains",
+      uid,
+      setCaptains
+    );
+
+    return () => {
+      unsubActivities();
+      unsubBoats();
+      unsubCaptains();
+    };
+
+  }, [uid]);
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -312,7 +317,7 @@ const OperatorDashboard: React.FC = () => {
     value: boat.id,
   }));
 
-  const captainOptions = captions.map(captain => ({
+  const captainOptions = captains.map(captain => ({
     label: captain.name,
     value: captain.id,
   }));
@@ -398,8 +403,6 @@ const OperatorDashboard: React.FC = () => {
 
   const [showSessionDetails, setShowSessionDetails] = useState<boolean>(false);
   const [selectedSession, setSelectedSession] = useState<any>({});
-
-  console.log(selectedDate, "===@@@")
 
   return (
     <SafeAreaView style={styles.container}>
@@ -637,7 +640,7 @@ const OperatorDashboard: React.FC = () => {
         boatOptions={boatOptions}
         captainOptions={captainOptions}
         boats={boats}
-        captains={captions}
+        captains={captains}
         handleSubmitAddSlot={handleSubmitAddSlot}
         isUploading={isUploading}
         sessionForm={sessionForm}

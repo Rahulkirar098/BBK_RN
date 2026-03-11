@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   FlatList,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Pencil, Trash2, X } from 'lucide-react-native';
 
 import {
@@ -35,7 +35,6 @@ export const ActivityManagerModal = ({
   visible,
   onClose,
   data,
-  handleFetch,
   handleDelete,
 }: any) => {
 
@@ -94,9 +93,8 @@ export const ActivityManagerModal = ({
       setEditingActivity(false);
       setActivity(emptyActivity);
 
-      handleFetch();
-
     } catch (error) {
+
       setSaving(false);
       Alert.alert('Save activity error', String(error));
     }
@@ -114,9 +112,10 @@ export const ActivityManagerModal = ({
             <FlatList
               data={data}
               keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
 
               ListHeaderComponent={
-                <View style={styles.header}>
+                <View style={styles.headerRow}>
                   <Text style={styles.modalTitle}>Activities</Text>
                   <X size={25} onPress={onClose} />
                 </View>
@@ -155,9 +154,13 @@ export const ActivityManagerModal = ({
 
           ) : (
 
-            <ScrollView>
+            <KeyboardAwareScrollView
+              enableOnAndroid
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
 
-              <View style={styles.header}>
+              <View style={styles.headerRow}>
                 <Text style={styles.modalTitle}>Activity Details</Text>
 
                 <X
@@ -193,7 +196,7 @@ export const ActivityManagerModal = ({
                 onPress={handleSaveActivity}
               />
 
-            </ScrollView>
+            </KeyboardAwareScrollView>
 
           )}
 
@@ -205,12 +208,12 @@ export const ActivityManagerModal = ({
   );
 };
 
+
 const styles = StyleSheet.create({
   modal: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: horizontalScale(20),
-    paddingTop: verticalScale(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -218,21 +221,21 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: colors.white,
     padding: 16,
-    maxHeight: 500,
+    maxHeight: '80%',
     width: '100%',
     borderRadius: horizontalScale(20),
-  },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
   },
 
   modalTitle: {
     ...typography.screenTitle,
     color: colors.textPrimary,
+  },
+
+  headerRow: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(10),
   },
 
   itemRow: {
@@ -249,15 +252,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  closeBtn: {
-    backgroundColor: colors.gray900,
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 20,
-    alignItems: 'center',
-    width: '100%',
-  },
-
   preview: {
     width: '100%',
     height: 150,
@@ -265,4 +259,5 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
     alignSelf: 'center',
   },
+
 });

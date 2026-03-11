@@ -36,6 +36,10 @@ import {
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
+
+import RNCalendarEvents from "react-native-calendar-events";
+
+
 const db = getFirestore();
 
 // ---------- Stripe ---------- //
@@ -216,8 +220,6 @@ export const RiderDashboard = () => {
     }
   };
 
-  console.log(cardDetails)
-
   const handleWaiverClear = () => {
     setSignature('');
     setHasScrolled(false);
@@ -243,7 +245,6 @@ export const RiderDashboard = () => {
 
     try {
       setLoading(true);
-
 
       const clientSecret = stripeData.clientSecret;
 
@@ -292,11 +293,37 @@ export const RiderDashboard = () => {
 
       saveCardToFirestore(cardDetails)
 
+try {
+  const permission = await RNCalendarEvents.requestPermissions();
+
+  if (permission === "authorized") {
+
+    const startDate = new Date(session?.time);
+    const endDate = new Date(startDate.getTime() + session?.durationMinutes * 60000);
+
+    const lat = session?.location?.latitude;
+    const lng = session?.location?.longitude;
+
+    const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+    await RNCalendarEvents.saveEvent("Boat Riding Session", {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      location: session?.locationDetails?.name,
+      notes: `Your booked boat session\n\nNavigate: ${mapLink}`,
+    });
+
+    Alert.alert("Event added to calendar");
+
+  }
+} catch (error) {
+  console.log(error);
+}
+
       setPaymentModal(false);
       setSelectedSession(null);
-      handleWaiverClear()
+      handleWaiverClear();
     } catch (err: any) {
-      console.error(err);
       Alert.alert('Error', err.message || 'Something went wrong');
     } finally {
       setLoading(false);

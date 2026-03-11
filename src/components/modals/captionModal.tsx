@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   FlatList,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,8 +10,7 @@ import {
   Alert,
 } from 'react-native';
 
-
-
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Pencil, Trash2, X } from 'lucide-react-native';
 import { Button, Input, Select } from '../atoms';
 import {
@@ -33,14 +31,10 @@ import { getAuth } from '@react-native-firebase/auth';
 import {
   getFirestore,
   collection,
-  getDocs,
   addDoc,
   doc,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
-  query,
-  where,
 } from '@react-native-firebase/firestore';
 
 import storage from '@react-native-firebase/storage';
@@ -51,9 +45,10 @@ const emptyCaptain = {
   status: 'Active',
   imageUrl: '',
   operator_id: '',
+  phone_no: '',
 };
 
-export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handleDelete }: any) => {
+export const CaptainManagerModal = ({ visible, onClose, data, handleDelete }: any) => {
   const app = getApp();
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -84,24 +79,18 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
     });
   };
 
-  // 🔥 UPLOAD IMAGE WITH LOADER
+  // IMAGE UPLOAD
   const uploadImage = async (uri: string, path: string) => {
     try {
-      setUploading(true);
-
-      // FIX for iOS
       const uploadUri = uri.replace('file://', '');
-
       const reference = storage().ref(path);
 
       await reference.putFile(uploadUri);
 
       const url = await reference.getDownloadURL();
-
       return url;
     } catch (error) {
       console.log('Upload error:', error);
-      setUploading(false);
       return '';
     }
   };
@@ -121,8 +110,10 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
   // SAVE
   const saveCaptain = async () => {
     if (!captain.name) return;
+
     try {
       setUploading(true);
+
       let imageUrl = captain.imageUrl;
 
       if (imageUrl?.startsWith('file')) {
@@ -130,7 +121,7 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
         imageUrl = await uploadImage(imageUrl, path);
       }
 
-      const data = {
+      const payload = {
         ...captain,
         imageUrl,
         operator_id: uid,
@@ -138,13 +129,9 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
       };
 
       if (captain.id) {
-        await updateDoc(doc(db, 'captains', captain.id), data);
-        handleFetch();
-        setUploading(false);
+        await updateDoc(doc(db, 'captains', captain.id), payload);
       } else {
-        await addDoc(collection(db, 'captains'), data);
-        handleFetch();
-        setUploading(false);
+        await addDoc(collection(db, 'captains'), payload);
       }
 
       setEditingCaptain(null);
@@ -152,22 +139,28 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
     } catch (error) {
       Alert.alert('Save Captain Error', String(error));
     }
+
+    setUploading(false);
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modal}>
         <View style={styles.modalCard}>
+
           {!editingCaptain ? (
             <FlatList
               data={data}
               keyExtractor={item => item.id}
+              showsVerticalScrollIndicator={false}
+
               ListHeaderComponent={
-                <View style={{ justifyContent: "space-between", flexDirection: "row" }}>
+                <View style={styles.headerRow}>
                   <Text style={styles.modalTitle}>Captains</Text>
                   <X size={25} onPress={onClose} />
                 </View>
               }
+
               renderItem={({ item }) => (
                 <View style={styles.itemRow}>
                   <Text>{item.name}</Text>
@@ -185,24 +178,30 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
                   </View>
                 </View>
               )}
+
               ListFooterComponent={
                 <Button label="Add Captain" onPress={handleCreate} />
               }
             />
           ) : (
-            <ScrollView>
 
-              <View
-                style={{
-                  justifyContent: 'space-between',
-                  flexDirection: 'row',
-                }}
-              >
+            <KeyboardAwareScrollView
+              enableOnAndroid
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+
+              <View style={styles.headerRow}>
                 <Text style={styles.modalTitle}>Captain Details</Text>
-                <X size={25} onPress={() => {
-                  setCaptain(emptyCaptain);
-                  setEditingCaptain(false);
-                }} />
+
+                <X
+                  size={25}
+                  onPress={() => {
+                    setCaptain(emptyCaptain);
+                    setEditingCaptain(null);
+                  }}
+                />
               </View>
 
               <Input
@@ -211,18 +210,31 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
                 onChangeText={v => setCaptain({ ...captain, name: v })}
               />
 
+              <Input
+                placeholder="Captain Phone no"
+                value={captain.phone_no}
+                keyboardType="numeric"
+                onChangeText={v =>
+                  setCaptain({ ...captain, phone_no: v })
+                }
+              />
+
               <Select
                 label="Status"
                 options={statusOptions}
                 value={captain.status}
-                onChange={v => setCaptain({ ...captain, status: v })}
+                onChange={v =>
+                  setCaptain({ ...captain, status: v })
+                }
               />
 
               <Select
                 label="Language"
                 options={language}
                 value={captain.language}
-                onChange={v => setCaptain({ ...captain, language: v })}
+                onChange={v =>
+                  setCaptain({ ...captain, language: v })
+                }
               />
 
               {captain.imageUrl !== '' && (
@@ -239,8 +251,11 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleFetch, handl
                 label={uploading ? 'Saving...' : 'Save Captain'}
                 onPress={saveCaptain}
               />
-            </ScrollView>
+
+            </KeyboardAwareScrollView>
+
           )}
+
         </View>
       </View>
     </Modal>
@@ -252,7 +267,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: horizontalScale(20),
-    paddingTop: verticalScale(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -260,15 +274,21 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: colors.white,
     padding: 16,
-    maxHeight: 500,
+    maxHeight: '80%',
     width: '100%',
     borderRadius: horizontalScale(20),
   },
 
   modalTitle: {
     ...typography.screenTitle,
-    marginBottom: 20,
     color: colors.textPrimary,
+  },
+
+  headerRow: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(10),
   },
 
   itemRow: {
@@ -285,15 +305,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  closeBtn: {
-    backgroundColor: colors.gray900,
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 20,
-    alignItems: 'center',
-    width: '100%',
-  },
-
   preview: {
     width: '100%',
     height: 150,
@@ -301,4 +312,5 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
     alignSelf: 'center',
   },
+
 });

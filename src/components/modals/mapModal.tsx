@@ -97,6 +97,7 @@ export default function LocationPickerModal({
                             container: { flex: 0, zIndex: 99 },
                             listView: { backgroundColor: "#000" },
                         }}
+                        
                     />
 
                     {/* Map */}
@@ -166,7 +167,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'center',
-        padding: 16,
     },
 
     modal: {
