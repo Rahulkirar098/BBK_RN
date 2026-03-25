@@ -8,51 +8,51 @@ import { colors, typography } from '../../theme';
 
 interface Props {
   session: any;
-  labels: {
-    waitlist: string;
-    book: string;
-  };
   onPress: () => void;
+  uid: string;
 }
 
-export const SessionCardRider = ({ session, labels, onPress }: Props) => {
+export const SessionCardRider = ({ session, uid, onPress }: Props) => {
   const isFull = session.bookedSeats >= session.totalSeats;
   const isConfirmed = session.bookedSeats >= session.minRidersToConfirm;
   const isRequested = session.isRequested;
 
+
+  const isBooked = session?.ridersProfile?.some(
+    (r: any) => r.uid === uid,
+  );
+
   const statusLabel = () => {
-    if (isRequested) return 'Requested';
-    if (isFull) return 'Waitlist Only';
-    if (isConfirmed) return 'Confirmed';
+    if (isBooked) return 'You booked this seat';
+    if (isFull) return 'All seats are booked';
     return `Needs ${session.minRidersToConfirm - session.bookedSeats} more`;
   };
 
   const statusContainerStyle = [
     styles.statusBadge,
-    isRequested
-      ? styles.requestedBadge
+    isBooked
+      ? styles.bookedBadge
       : isFull
-      ? styles.fullBadge
-      : isConfirmed
-      ? styles.confirmedBadge
-      : styles.neutralBadge,
+        ? styles.fullBadge
+        : styles.neutralBadge,
   ];
 
   const statusTextStyle = [
     styles.statusText,
-    isRequested || isFull || isConfirmed ? styles.whiteText : styles.grayText,
+    isBooked || isFull ? styles.whiteText : styles.grayText,
   ];
+
+  const borderStyle = isBooked
+    ? { borderColor: colors.gray400 }
+    : isFull
+      ? { borderColor: colors.orange500 }
+      : null;
 
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
-      style={[
-        styles.card,
-        isRequested && styles.dashedBorder,
-        isConfirmed && styles.confirmedBorder,
-        isFull && styles.fullBorder,
-      ]}
+      style={[styles.card, borderStyle]}
     >
       {/* IMAGE SECTION */}
       <View style={styles.imageWrapper}>
@@ -77,8 +77,8 @@ export const SessionCardRider = ({ session, labels, onPress }: Props) => {
 
         {/* Status */}
         <View style={statusContainerStyle}>
-          {isFull && <Bell size={12} color={colors.white} />}
-          {isConfirmed && <Zap size={12} color={colors.white} />}
+          {isBooked && <Star size={12} color={colors.white} />}
+          {isFull && !isBooked && <Bell size={12} color={colors.white} />}
           <Text style={statusTextStyle}>{statusLabel()}</Text>
         </View>
 
@@ -127,17 +127,17 @@ export const SessionCardRider = ({ session, labels, onPress }: Props) => {
           </View>
 
           {/* Action Button */}
-          {isFull ? (
-            <TouchableOpacity style={styles.waitlistBtn}>
-              <Text style={styles.waitlistText}>{labels.waitlist}</Text>
+          {isBooked ? (
+            <TouchableOpacity style={styles.bookedBtn} disabled>
+              <Text style={styles.bookedText}>Booked</Text>
             </TouchableOpacity>
-          ) : isRequested ? (
-            <TouchableOpacity style={styles.requestBtn}>
-              <Text style={styles.requestText}>Join Request</Text>
+          ) : isFull ? (
+            <TouchableOpacity style={styles.waitlistBtn} disabled>
+              <Text style={styles.waitlistText}>Full</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.bookBtn} onPress={onPress}>
-              <Text style={styles.bookText}>{labels.book}</Text>
+              <Text style={styles.bookText}>Book Now</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -223,6 +223,10 @@ const styles = StyleSheet.create({
 
   fullBadge: {
     backgroundColor: colors.orange500,
+  },
+
+  bookedBadge: {
+    backgroundColor: colors.gray500, // dark gray for booked
   },
 
   neutralBadge: {
@@ -313,7 +317,7 @@ const styles = StyleSheet.create({
   },
 
   waitlistBtn: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.orange500,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -321,19 +325,19 @@ const styles = StyleSheet.create({
 
   waitlistText: {
     ...typography.boldSmall,
-    color: colors.orange500,
+    color: colors.white,
   },
 
-  requestBtn: {
-    backgroundColor: colors.gray100,
+  bookedBtn: {
+    backgroundColor: colors.success,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
 
-  requestText: {
+  bookedText: {
     ...typography.boldSmall,
-    color: colors.gray500,
+    color: colors.white,
   },
 
   bookBtn: {

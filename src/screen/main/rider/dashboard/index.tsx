@@ -33,7 +33,7 @@ import {
   collectionGroup,
 } from '@react-native-firebase/firestore';
 
-import auth from '@react-native-firebase/auth';
+import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
 
@@ -44,8 +44,16 @@ const db = getFirestore();
 
 // ---------- Stripe ---------- //
 import { useStripe } from '@stripe/stripe-react-native';
+import { getApp } from '@react-native-firebase/app';
 
 export const RiderDashboard = () => {
+
+  // Firebase //
+  const app = getApp();
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const uid: any = auth.currentUser?.uid;
+
   const navigation = useNavigation<any>();
 
   // ---------- State ---------- //
@@ -56,6 +64,7 @@ export const RiderDashboard = () => {
   const [selectedTab, setSelectedTab] = useState<TimeFilter>('NOW');
 
   // ---------- State ---------- //
+  const [bookedDetailModal, setBookedDetailModal] = useState(false);
   const [sessionDetailModal, setSessionDetailModal] = useState(false);
   const [showWaiverModal, setShowWaiverModal] = useState(false);
   const [paymentModal, setPaymentModal] = useState(false);
@@ -111,11 +120,6 @@ export const RiderDashboard = () => {
 
     return unsubscribe;
   }, []);
-
-  const labels = {
-    waitlist: 'Waitlist',
-    book: 'Book Now',
-  };
 
   // ---------- Filtered Sessions ---------- //
   const filteredSessions = useMemo(() => {
@@ -189,7 +193,7 @@ export const RiderDashboard = () => {
 
   const saveCardToFirestore = async (cardData: any) => {
     try {
-      const currentUser = auth().currentUser;
+      const currentUser = auth.currentUser;
       if (!currentUser) return;
 
       // ✅ Only save if checkbox enabled
@@ -203,7 +207,7 @@ export const RiderDashboard = () => {
 
       await firestore()
         .collection('users')
-        .doc(currentUser.uid)
+        .doc(uid)
         .collection('paymentMethods')
         .add({
           brand: cardData.brand,
@@ -236,7 +240,7 @@ export const RiderDashboard = () => {
 
     const sessionId = session?.id;
     const operatorUid = session?.userId;
-    const riderUid = auth().currentUser?.uid;
+    const riderUid = uid;
 
     if (!sessionId || !operatorUid) {
       Alert.alert('Error', 'Invalid session data');
@@ -293,32 +297,32 @@ export const RiderDashboard = () => {
 
       saveCardToFirestore(cardDetails)
 
-try {
-  const permission = await RNCalendarEvents.requestPermissions();
+      try {
+        const permission = await RNCalendarEvents.requestPermissions();
 
-  if (permission === "authorized") {
+        if (permission === "authorized") {
 
-    const startDate = new Date(session?.time);
-    const endDate = new Date(startDate.getTime() + session?.durationMinutes * 60000);
+          const startDate = new Date(session?.time);
+          const endDate = new Date(startDate.getTime() + session?.durationMinutes * 60000);
 
-    const lat = session?.location?.latitude;
-    const lng = session?.location?.longitude;
+          const lat = session?.location?.latitude;
+          const lng = session?.location?.longitude;
 
-    const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+          const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
-    await RNCalendarEvents.saveEvent("Boat Riding Session", {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      location: session?.locationDetails?.name,
-      notes: `Your booked boat session\n\nNavigate: ${mapLink}`,
-    });
+          await RNCalendarEvents.saveEvent("Boat Riding Session", {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            location: session?.locationDetails?.name,
+            notes: `Your booked boat session\n\nNavigate: ${mapLink}`,
+          });
 
-    Alert.alert("Event added to calendar");
+          Alert.alert("Event added to calendar");
 
-  }
-} catch (error) {
-  console.log(error);
-}
+        }
+      } catch (error) {
+        console.log(error);
+      }
 
       setPaymentModal(false);
       setSelectedSession(null);
@@ -360,13 +364,27 @@ try {
         renderItem={({ item }) => (
           <SessionCardRider
             session={item}
-            labels={labels}
             onPress={() => {
+              const isBooked = item?.ridersProfile?.some(
+                (r: any) => r.uid === uid,
+              );
+              if (isBooked) {
+                setBookedDetailModal(true);
+                setSelectedSession(item);
+                return;
+              }
               setSessionDetailModal(true);
               setSelectedSession(item);
             }}
+            uid={uid}
           />
         )}
+      />
+
+      <InfoModal
+        visible={bookedDetailModal}
+        session={selectedSession}
+        onClose={() => setBookedDetailModal(false)}
       />
 
       <SessionDetailCard
@@ -376,10 +394,6 @@ try {
         onBook={() => handleBookSession()}
         onWaitlist={() => Alert.alert('Join waitlist')}
       />
-
-      {/* <InfoModal
-       label={"Info"}
-       /> */}
 
       <WaiverModal
         visible={showWaiverModal}
