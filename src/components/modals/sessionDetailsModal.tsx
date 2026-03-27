@@ -66,7 +66,6 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
         return <Sun size={16} color={colors.orange500} />;
     }
   };
-
   return (
     <Modal
       visible={visible}
@@ -212,15 +211,16 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               )}
             </View>
 
-            {!isBooked && <Button label="Book Seat" onPress={onBook} />}
 
             {!isBooked && (
               <Text style={styles.footerNote}>
                 No charge until session is confirmed.
               </Text>
             )}
+            
+            {!isBooked && <Button label="Book Seat" onPress={onBook} />}
 
-            <TouchableOpacity
+            {isBooked && <TouchableOpacity
               onPress={() =>
                 Linking.openURL(
                   mapDirection(
@@ -231,7 +231,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               }
             >
               <Text style={styles.link}>📍 Get direction</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
             
           </ScrollView>
         </View>

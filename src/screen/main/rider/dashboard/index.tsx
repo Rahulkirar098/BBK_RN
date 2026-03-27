@@ -272,12 +272,6 @@ export const RiderDashboard = () => {
       }
 
       // 🔥 Call backend to finalize booking
-      const baseUrl =
-        Platform.OS === 'android'
-          ? 'http://10.0.2.2:3000'
-          : 'http://localhost:3000';
-
-
       const liveURL = 'https://bbk-be-1smn.vercel.app';
 
       const finalizeResponse = await fetch(`${liveURL}/finalize-booking`, {
@@ -290,7 +284,7 @@ export const RiderDashboard = () => {
           paymentIntentId: paymentIntent.id,
         }),
       });
-
+      
       const finalizeData = await finalizeResponse.json();
 
       if (!finalizeResponse.ok) {
@@ -320,10 +314,8 @@ export const RiderDashboard = () => {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
             location: session?.locationDetails?.name,
-            notes: `Your booked boat session\n\nNavigate: ${mapLink}`,
+            notes: `Your booked session\n\nNavigate: ${mapLink}`,
           });
-
-          Alert.alert('Event added to calendar');
         } else {
           Alert.alert('Please allow permission');
         }
@@ -335,6 +327,7 @@ export const RiderDashboard = () => {
       setSelectedSession(null);
       handleWaiverClear();
     } catch (err: any) {
+      console.log(err.message )
       Alert.alert('Error', err.message || 'Something went wrong');
     } finally {
       setLoading(false);

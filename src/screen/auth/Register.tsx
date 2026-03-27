@@ -12,11 +12,7 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-
-import { Linking } from 'react-native';
-
-
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 /* ---------------- FIREBASE ---------------- */
 
@@ -36,6 +32,7 @@ import { Input } from '../../components/atoms/input';
 import { Select } from '../../components/atoms/select';
 import { colors } from '../../theme';
 import { language } from '../../utils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /* ---------------- CONSTANTS ---------------- */
 
@@ -70,7 +67,7 @@ const initialState: State = {
   emiratesBack: null,
   loading: false,
   error: null,
-  phone_no: ""
+  phone_no: '',
 };
 
 function reducer(state: State, action: any): State {
@@ -106,8 +103,8 @@ const RegisterScreen = () => {
     roleParam === 'rider'
       ? 'RIDER'
       : roleParam === 'operator'
-        ? 'OPERATOR'
-        : null;
+      ? 'OPERATOR'
+      : null;
 
   if (!userRole) {
     return (
@@ -143,7 +140,7 @@ const RegisterScreen = () => {
       language,
       emiratesFront,
       emiratesBack,
-      phone_no
+      phone_no,
     } = state;
 
     if (!name || !language || !emiratesFront || !emiratesBack || !phone_no) {
@@ -190,12 +187,13 @@ const RegisterScreen = () => {
               : { agencyName, licenceNumber }),
             complianceStatus: 'PENDING',
             createdAt: serverTimestamp(),
-            phone_no
+            phone_no,
+            onBoardStatus: 'completed',
           },
         },
         { merge: true },
       );
-
+      await AsyncStorage.setItem('onBoardStatus', 'completed');
       navigation.replace('bottom_tab');
     } catch (e) {
       console.log(e);
@@ -211,7 +209,7 @@ const RegisterScreen = () => {
   /* ---------- UI ---------- */
 
   return (
-   <KeyboardAwareScrollView 
+    <KeyboardAwareScrollView
       contentContainerStyle={styles.container}
       enableOnAndroid={true}
       extraScrollHeight={20}
@@ -239,7 +237,7 @@ const RegisterScreen = () => {
           onChangeText={v =>
             dispatch({ type: 'SET_FIELD', field: 'phone_no', value: v })
           }
-          keyboardType='numeric'
+          keyboardType="numeric"
         />
 
         {userRole === 'RIDER' && (

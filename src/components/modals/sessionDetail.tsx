@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Modal,
   View,
@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { X } from 'lucide-react-native';
 import FastImage from 'react-native-fast-image';
+
+import firestore from '@react-native-firebase/firestore';
 
 import {
   colors,
@@ -88,6 +90,28 @@ export const SessionDetailModal: React.FC<Props> = ({
       ? mapDirection(location.latitude, location.longitude)
       : null;
 
+  const [bookings, setBookings] = React.useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = React.useState(false);
+
+  useEffect(() => {
+    if (!visible || !session?.id) return;
+
+    const unsubscribe = firestore()
+      .collection('slots')
+      .doc(session.id)
+      .collection('booking')
+      .onSnapshot(snapshot => {
+        const list = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setBookings(list);
+      });
+
+    return () => unsubscribe();
+  }, [visible, session?.id]);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -157,17 +181,39 @@ export const SessionDetailModal: React.FC<Props> = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Riders</Text>
 
-              <DetailRow
-                label="Total Riders"
-                value={ridersProfile?.length || 0}
-              />
+              <DetailRow label="Total Riders" value={bookings.length} />
 
-              {ridersProfile?.map((r: any, i: number) => (
-                <View key={i} style={{ marginBottom: 8 }}>
-                  <DetailRow label="User ID" value={r.uid} />
-                  <DetailRow label="Status" value={r.status} />
-                </View>
-              ))}
+              {loadingBookings ? (
+                <Text>Loading...</Text>
+              ) : bookings.length === 0 ? (
+                <Text>No riders yet</Text>
+              ) : (
+                bookings.map((r: any) => (
+                  <View key={r.id} style={styles.riderCard}>
+                    {/* 🔥 Rider Image + Info */}
+                    <View style={styles.riderRow}>
+                      <FastImage
+                        source={{
+                          uri: r.photoURL || 'https://via.placeholder.com/100',
+                        }}
+                        style={styles.avatar}
+                      />
+
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.riderName}>
+                          {r.displayName || r.name || 'Unknown'}
+                        </Text>
+
+                        {r.email && (
+                          <Text style={styles.riderSub}>{r.email}</Text>
+                        )}
+
+                        <Text style={styles.riderStatus}>{r.status}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
             </View>
 
             {/* BOAT */}
@@ -247,7 +293,7 @@ const styles = StyleSheet.create({
 
   headerOverlay: {
     position: 'absolute',
-    top: 12,
+    top: verticalScale(10),
     width: '100%',
     paddingHorizontal: horizontalScale(10),
     flexDirection: 'row',
@@ -323,5 +369,40 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 10,
     marginTop: 10,
+  },
+
+  riderCard: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 10,
+  },
+
+  riderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  avatar: {
+    width: 45,
+    height: 45,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+
+  riderName: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+
+  riderSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+
+  riderStatus: {
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 2,
   },
 });

@@ -26,7 +26,7 @@ export const SkillLevelSelector = ({ skillLevel, setSkillLevel }: Props) => {
           SkillLevel.INTERMEDIATE,
           SkillLevel.ADVANCED,
         ].map(level => {
-          const isSelected = skillLevel.toUpperCase() === level.toUpperCase();
+          const isSelected = skillLevel?.toUpperCase() === level?.toUpperCase();
 
           return (
             <TouchableOpacity

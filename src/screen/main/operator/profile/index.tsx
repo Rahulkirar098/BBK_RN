@@ -81,6 +81,8 @@ export const OperatorProfile = () => {
 
       const profile = snap.data()?.userProfile;
 
+      console.log(profile)
+
       if (!snap.data()?.userProfile) {
         navigation.replace("register", {
           role: 'OPERATOR',

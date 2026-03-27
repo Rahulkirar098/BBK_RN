@@ -46,12 +46,16 @@ export const RiderProfile = () => {
         .onSnapshot(
           (doc: any) => {
             if (doc.exists) {
+              console.log({
+                id: doc.id,
+                ...doc.data(),
+              })
               setRiderData({
                 id: doc.id,
                 ...doc.data(),
               });
             }
-            setSkillLevel(doc.data().userProfile.skillLevel);
+            setSkillLevel(doc.data()?.userProfile?.skillLevel);
             setLoading(false);
           },
           (error: any) => {

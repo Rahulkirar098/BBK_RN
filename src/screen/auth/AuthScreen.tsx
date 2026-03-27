@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,29 +6,29 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-} from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+} from 'react-native';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { getApp } from "@react-native-firebase/app";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { getApp } from '@react-native-firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithCredential,
-} from "@react-native-firebase/auth";
+} from '@react-native-firebase/auth';
 import {
   getFirestore,
   doc,
   getDoc,
   setDoc,
   serverTimestamp,
-} from "@react-native-firebase/firestore";
-import { colors } from "../../theme";
+} from '@react-native-firebase/firestore';
+import { colors } from '../../theme';
 
 /* ---------------- TYPES ---------------- */
 
-type UserRole = "RIDER" | "OPERATOR" | "ADMIN";
+type UserRole = 'RIDER' | 'OPERATOR' | 'ADMIN';
 
 type AuthRouteParams = {
   role: UserRole;
@@ -37,9 +37,7 @@ type AuthRouteParams = {
 /* ---------------- HELPERS ---------------- */
 
 const cleanObject = (obj: any) =>
-  Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => v !== undefined)
-  );
+  Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
 
 /* ---------------- SCREEN ---------------- */
 
@@ -60,7 +58,7 @@ const AuthScreen = () => {
 
   const handleBack = () => {
     setError(null);
-    navigation.replace("role-selection");
+    navigation.replace('role-selection');
   };
 
   /* ---------------- GOOGLE SIGN-IN ---------------- */
@@ -75,11 +73,10 @@ const AuthScreen = () => {
       });
 
       const signInResult: any = await GoogleSignin.signIn();
-      const idToken =
-        signInResult?.data?.idToken || signInResult?.idToken;
+      const idToken = signInResult?.data?.idToken || signInResult?.idToken;
 
       if (!idToken) {
-        throw new Error("Google sign-in failed (no token)");
+        throw new Error('Google sign-in failed (no token)');
       }
 
       const credential = GoogleAuthProvider.credential(idToken);
@@ -88,7 +85,7 @@ const AuthScreen = () => {
 
       /* ---------------- FIRESTORE ---------------- */
 
-      const userRef = doc(firestore, "users", user.uid);
+      const userRef = doc(firestore, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
       // Validate role
@@ -97,7 +94,7 @@ const AuthScreen = () => {
 
         if (existingRole && existingRole !== userRole) {
           setError(
-            `You are already registered as a ${existingRole}. Please continue as ${existingRole}.`
+            `You are already registered as a ${existingRole}. Please continue as ${existingRole}.`,
           );
           setLoading(false);
           return;
@@ -112,8 +109,9 @@ const AuthScreen = () => {
         displayName: user.displayName,
         photoURL: user.photoURL,
         role: userRole,
-        provider: "google",
+        provider: 'google',
         updatedAt: serverTimestamp(),
+        onBoardStatus: 'pending',
       });
 
       await setDoc(
@@ -122,15 +120,13 @@ const AuthScreen = () => {
           ...baseUserData,
           createdAt: serverTimestamp(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       /* ---------------- LOCAL STORAGE ---------------- */
 
-      await AsyncStorage.setItem(
-        "bbs_user",
-        JSON.stringify(baseUserData)
-      );
+      await AsyncStorage.setItem('bbs_user', JSON.stringify(baseUserData));
+      await AsyncStorage.setItem('onBoardStatus', 'pending');
 
       /* ---------------- REDIRECT ---------------- */
 
@@ -138,15 +134,15 @@ const AuthScreen = () => {
         userSnap.exists() && !!userSnap.data()?.userProfile;
 
       if (isProfileCompleted) {
-        navigation.replace("bottom_tab");
+        navigation.replace('bottom_tab');
       } else {
-        navigation.replace("register", {
+        navigation.replace('register', {
           role: userRole.toLowerCase(),
         });
       }
     } catch (err: any) {
       console.log(err);
-      setError(err?.message || "Google sign-in failed");
+      setError(err?.message || 'Google sign-in failed');
     } finally {
       setLoading(false);
     }
@@ -155,11 +151,11 @@ const AuthScreen = () => {
   /* ---------------- UI LABEL ---------------- */
 
   const roleLabel =
-    userRole === "RIDER"
-      ? "Rider"
-      : userRole === "OPERATOR"
-        ? "Operator"
-        : "Admin";
+    userRole === 'RIDER'
+      ? 'Rider'
+      : userRole === 'OPERATOR'
+      ? 'Operator'
+      : 'Admin';
 
   /* ---------------- UI ---------------- */
 
@@ -169,8 +165,8 @@ const AuthScreen = () => {
         <View style={styles.header}>
           <Text style={styles.title}>Sign in as {roleLabel}</Text>
           <Text style={styles.subtitle}>
-            Continue with Google to access your{" "}
-            {roleLabel.toLowerCase()} dashboard.
+            Continue with Google to access your {roleLabel.toLowerCase()}{' '}
+            dashboard.
           </Text>
         </View>
 
@@ -198,9 +194,7 @@ const AuthScreen = () => {
               <View style={styles.googleIcon}>
                 <Text style={styles.googleIconText}>G</Text>
               </View>
-              <Text style={styles.googleText}>
-                Continue with Google
-              </Text>
+              <Text style={styles.googleText}>Continue with Google</Text>
             </>
           )}
         </Pressable>
@@ -216,13 +210,13 @@ export default AuthScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
   },
   card: {
-    width: "100%",
+    width: '100%',
     maxWidth: 420,
     backgroundColor: colors.white,
     borderRadius: 24,
@@ -230,23 +224,23 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   header: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: 24,
   },
   title: {
     fontSize: 22,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: '800',
+    color: '#111827',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
+    color: '#6B7280',
+    textAlign: 'center',
   },
   errorBox: {
-    backgroundColor: "#FEF2F2",
-    borderColor: "#FEE2E2",
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FEE2E2',
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
@@ -254,25 +248,25 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    color: "#DC2626",
+    color: '#DC2626',
   },
   backBtn: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: '#D1D5DB',
     borderRadius: 12,
     paddingVertical: 12,
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: 16,
   },
   backText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
+    fontWeight: '600',
+    color: '#374151',
   },
   googleBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
     backgroundColor: colors.primary,
     paddingVertical: 14,
@@ -286,16 +280,16 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: colors.white,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   googleIconText: {
     color: colors.primary,
-    fontWeight: "800",
+    fontWeight: '800',
   },
   googleText: {
     color: colors.white,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '700',
   },
 });
