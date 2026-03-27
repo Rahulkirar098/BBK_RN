@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Linking,
 } from 'react-native';
 import {
   Clock,
@@ -29,14 +30,15 @@ import {
   verticalScale,
 } from '../../theme';
 import { Button } from '../atoms';
-import { formatDuration } from '../../utils/common_logic';
+import { formatDuration, mapDirection } from '../../utils/common_logic';
+import { googleMapURL } from '../../config/key';
 
 interface SessionDetailCardProps {
   visible: boolean;
   session: any;
   onClose: () => void;
   onBook: () => void;
-  onWaitlist: () => void;
+  isBooked: boolean;
 }
 
 export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
@@ -44,13 +46,11 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   session,
   onClose,
   onBook,
-  onWaitlist,
+  isBooked,
 }) => {
   if (!session) return null;
 
   const progressPercent = (session.bookedSeats / session.totalSeats) * 100;
-
-  const isFull = session.bookedSeats >= session.totalSeats;
 
   const getWeatherIcon = (weather: string) => {
     switch (weather) {
@@ -85,7 +85,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
           <View style={styles.imageContainer}>
             <FastImage
               source={{
-                uri: session.imageUrl,
+                uri: session?.imageUrl,
                 priority: FastImage.priority.high,
               }}
               style={styles.image}
@@ -212,16 +212,27 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               )}
             </View>
 
-            {/* BUTTON */}
-            {isFull ? (
-              <Button label="Join Waitlist" onPress={onWaitlist} />
-            ) : (
-              <Button label="Book Seat" onPress={onBook} />
+            {!isBooked && <Button label="Book Seat" onPress={onBook} />}
+
+            {!isBooked && (
+              <Text style={styles.footerNote}>
+                No charge until session is confirmed.
+              </Text>
             )}
 
-            <Text style={styles.footerNote}>
-              No charge until session is confirmed.
-            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL(
+                  mapDirection(
+                    session?.location.latitude,
+                    session?.location.longitude,
+                  ),
+                )
+              }
+            >
+              <Text style={styles.link}>📍 Get direction</Text>
+            </TouchableOpacity>
+            
           </ScrollView>
         </View>
       </View>
@@ -386,5 +397,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 10,
+  },
+
+  link: {
+    color: colors.primary,
+    marginTop: 6,
+    fontWeight: '600',
   },
 });

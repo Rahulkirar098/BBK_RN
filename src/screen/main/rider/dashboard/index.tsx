@@ -43,6 +43,7 @@ const db = getFirestore();
 // ---------- Stripe ---------- //
 import { useStripe } from '@stripe/stripe-react-native';
 import { getApp } from '@react-native-firebase/app';
+import { mapDirection } from '../../../../utils/common_logic';
 
 export const RiderDashboard = () => {
   // Firebase //
@@ -276,7 +277,10 @@ export const RiderDashboard = () => {
           ? 'http://10.0.2.2:3000'
           : 'http://localhost:3000';
 
-      const finalizeResponse = await fetch(`${baseUrl}/finalize-booking`, {
+
+      const liveURL = 'https://bbk-be-1smn.vercel.app';
+
+      const finalizeResponse = await fetch(`${liveURL}/finalize-booking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -310,7 +314,7 @@ export const RiderDashboard = () => {
           const lat = session?.location?.latitude;
           const lng = session?.location?.longitude;
 
-          const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+          const mapLink = mapDirection(lat,lng);
 
           await RNCalendarEvents.saveEvent('Boat Riding Session', {
             startDate: startDate.toISOString(),
@@ -368,14 +372,6 @@ export const RiderDashboard = () => {
           <SessionCardRider
             session={item}
             onPress={() => {
-              const isBooked = item?.ridersProfile?.some(
-                (r: any) => r.uid === uid,
-              );
-              if (isBooked) {
-                setBookedDetailModal(true);
-                setSelectedSession(item);
-                return;
-              }
               setSessionDetailModal(true);
               setSelectedSession(item);
             }}
@@ -384,18 +380,14 @@ export const RiderDashboard = () => {
         )}
       />
 
-      <InfoModal
-        visible={bookedDetailModal}
-        session={selectedSession}
-        onClose={() => setBookedDetailModal(false)}
-      />
-
       <SessionDetailCard
         visible={sessionDetailModal}
         session={selectedSession}
         onClose={() => setSelectedSession(null)}
         onBook={() => handleBookSession()}
-        onWaitlist={() => Alert.alert('Join waitlist')}
+        isBooked={selectedSession?.ridersProfile?.some(
+          (r: any) => r.uid === uid,
+        )}
       />
 
       <WaiverModal

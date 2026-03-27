@@ -17,6 +17,7 @@ import {
   typography,
   verticalScale,
 } from '../../theme';
+import { mapDirection } from '../../utils/common_logic';
 
 interface Props {
   visible: boolean;
@@ -24,13 +25,7 @@ interface Props {
   onClose: () => void;
 }
 
-const DetailRow = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: any;
-}) => {
+const DetailRow = ({ label, value }: { label: string; value: any }) => {
   if (value === undefined || value === null || value === '') return null;
 
   return (
@@ -90,7 +85,7 @@ export const SessionDetailModal: React.FC<Props> = ({
 
   const mapLink =
     location?.latitude && location?.longitude
-      ? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
+      ? mapDirection(location.latitude, location.longitude)
       : null;
 
   return (

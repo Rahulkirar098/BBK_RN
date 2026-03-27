@@ -12,6 +12,9 @@ import {
 } from 'react-native';
 
 import DateTimePicker from '@react-native-community/datetimepicker';
+
+import DatePicker from 'react-native-date-picker';
+
 import { MapPin, GalleryHorizontal } from 'lucide-react-native';
 
 import { Button, Input, Select } from '../atoms';
@@ -283,28 +286,33 @@ export const CreateSessionModal = ({
               </TouchableOpacity>
             </View>
 
-            {/* PICKERS */}
-            {showDatePicker && (
-              <DateTimePicker
-                value={form.date}
-                mode="date"
-                onChange={(_, d) => {
-                  setShowDatePicker(false);
-                  d && handleChange('date', d);
-                }}
-              />
-            )}
+            <DatePicker
+              modal
+              mode="date"
+              open={showDatePicker}
+              date={form.date}
+              onConfirm={date => {
+                setShowDatePicker(false);
+                handleChange('date', date);
+              }}
+              onCancel={() => {
+                setShowDatePicker(false);
+              }}
+            />
 
-            {showTimePicker && (
-              <DateTimePicker
-                value={form.time}
-                mode="time"
-                onChange={(_, d) => {
-                  setShowTimePicker(false);
-                  d && handleChange('time', d);
-                }}
-              />
-            )}
+            <DatePicker
+              modal
+              mode="time"
+              open={showTimePicker}
+              date={form.time}
+              onConfirm={date => {
+                setShowTimePicker(false);
+                date && handleChange('time', date);
+              }}
+              onCancel={() => {
+                setShowTimePicker(false);
+              }}
+            />
 
             {/* BOAT + CAPTAIN */}
             <View style={styles.row}>

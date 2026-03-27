@@ -1,4 +1,6 @@
+import { Platform } from 'react-native';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
+import { appleMapURL, googleMapURL } from '../config';
 
 export const pickImageFromGallery = async (): Promise<Asset | null> => {
   try {
@@ -19,19 +21,23 @@ export const pickImageFromGallery = async (): Promise<Asset | null> => {
 };
 
 export const formatDuration = (minutes: number) => {
-    if (!minutes) return '';
+  if (!minutes) return '';
 
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
 
-    if (hrs > 0 && mins > 0) {
-      return `${hrs} hr ${mins} min`;
-    }
+  if (hrs > 0 && mins > 0) {
+    return `${hrs} hr ${mins} min`;
+  }
 
-    if (hrs > 0) {
-      return `${hrs} hr`;
-    }
+  if (hrs > 0) {
+    return `${hrs} hr`;
+  }
 
-    return `${mins} min`;
-  };
-  
+  return `${mins} min`;
+};
+
+export const mapDirection = (lat: string, lng: string) => {
+  let platform = Platform.OS === 'android';
+  return platform ? `${googleMapURL}${lat},${lng}` : `${appleMapURL}${lat},${lng}`;
+}

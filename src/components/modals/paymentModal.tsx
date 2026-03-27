@@ -5,16 +5,14 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Alert,
-  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { Lock, X, ShieldCheck, CreditCard } from 'lucide-react-native';
-
 import { CardField } from '@stripe/stripe-react-native';
 
 import {
@@ -23,7 +21,9 @@ import {
   horizontalScale,
   verticalScale,
 } from '../../theme';
+
 import { CustomCheckbox } from '../atoms/checkbox';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 interface PaymentModalProps {
   session: any;
@@ -42,16 +42,20 @@ export const PaymentModal = ({
   onClose,
   onConfirm,
   visible,
-
   setCardDetails,
-
   saveCardDetails,
   toggleSaveCard,
 }: PaymentModalProps) => {
   const [loading, setLoading] = useState(false);
+  const [isCardComplete, setIsCardComplete] = useState(false);
 
   const handlePayment = async () => {
     try {
+      if (!isCardComplete) {
+        Alert.alert('Error', 'Please enter complete card details');
+        return;
+      }
+
       setLoading(true);
 
       const storedUser = await AsyncStorage.getItem('bbs_user');
@@ -59,12 +63,9 @@ export const PaymentModal = ({
 
       const user = JSON.parse(storedUser);
 
-      const baseUrl =
-        Platform.OS === 'android'
-          ? 'http://10.0.2.2:3000'
-          : 'http://localhost:3000';
+      const liveURL = 'https://bbk-be-1smn.vercel.app';
 
-      const response = await fetch(`${baseUrl}/create-payment-intent`, {
+      const response = await fetch(`${liveURL}/create-payment-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,16 +74,13 @@ export const PaymentModal = ({
           riderUid: user?.uid,
         }),
       });
-      
-      const data = await response.json();
 
-      console.log(data)
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create payment intent');
       }
 
-      // Pass stripeData only
       onConfirm(session, data);
     } catch (err: any) {
       console.error(err);
@@ -91,92 +89,109 @@ export const PaymentModal = ({
       setLoading(false);
     }
   };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          {/* ---------- Header ---------- */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Lock size={16} color={colors.textSecondary} />
-              <Text style={styles.headerTitle}>Checkout</Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.overlay}>
+          <View style={styles.container}>
+            {/* ---------- HEADER ---------- */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Lock size={16} color={colors.textSecondary} />
+                <Text style={styles.headerTitle}>Checkout</Text>
+              </View>
+
+              <TouchableOpacity onPress={onClose}>
+                <X size={20} color={colors.gray400} />
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity onPress={onClose}>
-              <X size={20} color={colors.gray400} />
-            </TouchableOpacity>
-          </View>
+            {/* ---------- BODY ---------- */}
+            <KeyboardAwareScrollView
+              contentContainerStyle={styles.content}
+              enableOnAndroid
+              enableAutomaticScroll
+              extraScrollHeight={20}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* TOTAL */}
+              <View style={styles.totalRow}>
+                <View>
+                  <Text style={styles.totalLabel}>TOTAL</Text>
+                  <Text style={styles.totalPrice}>
+                    {session?.currency} {session?.pricePerSeat}
+                  </Text>
+                </View>
 
-          {/* ---------- Body ---------- */}
-          <View style={styles.content}>
-            {/* Total Section */}
-            <View style={styles.totalRow}>
-              <View>
-                <Text style={styles.totalLabel}>TOTAL</Text>
-                <Text style={styles.totalPrice}>
-                  {session?.currency} {session?.pricePerSeat}
+                <View style={styles.preAuthBadge}>
+                  <Text style={styles.preAuthText}>PRE-AUTH</Text>
+                </View>
+              </View>
+
+              {/* CARD */}
+              <View style={styles.cardContainer}>
+                <View style={styles.cardLabelRow}>
+                  <CreditCard size={16} color={colors.primary} />
+                  <Text style={styles.cardLabel}>Card Details</Text>
+                </View>
+
+                <View style={styles.cardWrapper}>
+                  <CardField
+                    postalCodeEnabled={false}
+                    placeholders={{
+                      number: '4242 4242 4242 4242',
+                    }}
+                    cardStyle={{
+                      backgroundColor: colors.white,
+                      textColor: colors.textPrimary,
+                      fontSize: 16,
+                    }}
+                    style={styles.cardField}
+                    onCardChange={card => {
+                      setCardDetails(card);
+                      setIsCardComplete(card.complete);
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* SAVE CARD */}
+              <CustomCheckbox
+                checked={saveCardDetails}
+                label="Save card details for future bookings"
+                onPress={toggleSaveCard}
+              />
+
+              {/* PAY BUTTON */}
+              <TouchableOpacity
+                style={[
+                  styles.payButton,
+                  (!isCardComplete || loading) && { opacity: 0.5 },
+                ]}
+                onPress={handlePayment}
+                disabled={!isCardComplete || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.payText}>Pay Now</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* FOOTER */}
+              <View style={styles.secureRow}>
+                <ShieldCheck size={12} color={colors.textSecondary} />
+                <Text style={styles.secureText}>
+                  Secure 256-bit SSL encrypted
                 </Text>
               </View>
-
-              <View style={styles.preAuthBadge}>
-                <Text style={styles.preAuthText}>PRE-AUTH</Text>
-              </View>
-            </View>
-
-            {/* Card Section */}
-            <View style={styles.cardContainer}>
-              <View style={styles.cardLabelRow}>
-                <CreditCard size={16} color={colors.primary} />
-                <Text style={styles.cardLabel}>Card Details</Text>
-              </View>
-
-              <View style={styles.cardWrapper}>
-                <CardField
-                  postalCodeEnabled={false}
-                  placeholders={{
-                    number: '4242 4242 4242 4242',
-                  }}
-                  cardStyle={{
-                    backgroundColor: colors.white,
-                    textColor: colors.textPrimary,
-                    borderRadius: 12,
-                    fontSize: 16,
-                  }}
-                  style={styles.cardField}
-                  onCardChange={card => setCardDetails(card)}
-                />
-              </View>
-            </View>
-
-            <CustomCheckbox
-              checked={saveCardDetails}
-              label="Save card details for future bookings"
-              onPress={toggleSaveCard}
-            />
-
-            {/* Pay Button */}
-            <TouchableOpacity
-              style={styles.payButton}
-              onPress={handlePayment}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={styles.payText}>Pay Now</Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Footer */}
-            <View style={styles.secureRow}>
-              <ShieldCheck size={12} color={colors.textSecondary} />
-              <Text style={styles.secureText}>
-                Secure 256-bit SSL encrypted
-              </Text>
-            </View>
+            </KeyboardAwareScrollView>
           </View>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -193,6 +208,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 20,
     overflow: 'hidden',
+    maxHeight: '85%',
   },
 
   header: {
@@ -224,15 +240,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingBottom: verticalScale(10),
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    paddingBottom: verticalScale(10),
   },
 
   totalLabel: {
     ...typography.small,
     color: colors.textSecondary,
-    letterSpacing: 1,
   },
 
   totalPrice: {
@@ -243,8 +258,8 @@ const styles = StyleSheet.create({
 
   preAuthBadge: {
     backgroundColor: colors.gray100,
-    paddingHorizontal: horizontalScale(8),
-    paddingVertical: verticalScale(4),
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
   },
 
@@ -253,38 +268,33 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  cardInput: {
+  cardContainer: {
+    marginTop: verticalScale(10),
+  },
+
+  cardLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.gray100,
-    borderRadius: 12,
-    paddingHorizontal: horizontalScale(12),
-    paddingVertical: verticalScale(14),
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 10,
+    gap: 6,
+    marginBottom: verticalScale(10),
   },
 
-  input: {
-    flex: 1,
-    ...typography.body,
+  cardLabel: {
+    ...typography.cardTitle,
     color: colors.textPrimary,
   },
 
-  row: {
-    flexDirection: 'row',
-    gap: horizontalScale(12),
+  cardWrapper: {
+    borderWidth: 1,
+    borderColor: colors.gray200,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
 
-  inputBox: {
-    backgroundColor: colors.gray100,
-    borderRadius: 12,
-    paddingHorizontal: horizontalScale(12),
-    paddingVertical: verticalScale(14),
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...typography.body,
-    color: colors.textPrimary,
+  cardField: {
+    width: '100%',
+    height: 50,
   },
 
   payButton: {
@@ -309,42 +319,5 @@ const styles = StyleSheet.create({
   secureText: {
     ...typography.caption,
     color: colors.textSecondary,
-  },
-
-  ///////////
-  cardContainer: {
-    marginTop: verticalScale(20),
-  },
-
-  cardLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: verticalScale(10),
-  },
-
-  cardLabel: {
-    ...typography.cardTitle,
-    color: colors.textPrimary,
-  },
-
-  cardWrapper: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.gray200,
-    paddingHorizontal: horizontalScale(12),
-    paddingVertical: verticalScale(8),
-
-    shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-
-  cardField: {
-    width: '100%',
-    height: 50,
   },
 });
