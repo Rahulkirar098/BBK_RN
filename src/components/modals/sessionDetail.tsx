@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Linking,
 } from 'react-native';
 import { X } from 'lucide-react-native';
 import FastImage from 'react-native-fast-image';
@@ -28,16 +29,30 @@ const DetailRow = ({
   value,
 }: {
   label: string;
-  value: string | number;
+  value: any;
 }) => {
-  if (!value && value !== 0) return null;
+  if (value === undefined || value === null || value === '') return null;
 
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
+      <Text style={styles.value}>{String(value)}</Text>
     </View>
   );
+};
+
+const formatDate = (value: any) => {
+  try {
+    if (!value) return '';
+
+    if (value?.toDate) {
+      return value.toDate().toLocaleString();
+    }
+
+    return new Date(value).toLocaleString();
+  } catch {
+    return 'Invalid date';
+  }
 };
 
 export const SessionDetailModal: React.FC<Props> = ({
@@ -51,24 +66,32 @@ export const SessionDetailModal: React.FC<Props> = ({
     title,
     imageUrl,
     pricePerSeat,
-    locationName,
+    activity,
+    status,
 
     boat,
     captain,
 
     totalSeats,
-    minRidersToConfirm,
+    minRiders,
     bookedSeats,
+    ridersProfile,
 
     durationMinutes,
     timeStart,
+
+    location,
+    locationDetails,
   } = session;
 
   const fillPercent = totalSeats
     ? Math.round((bookedSeats / totalSeats) * 100)
     : 0;
 
-  console.log(session);
+  const mapLink =
+    location?.latitude && location?.longitude
+      ? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
+      : null;
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -78,24 +101,14 @@ export const SessionDetailModal: React.FC<Props> = ({
           <View style={styles.imageContainer}>
             <FastImage
               source={{
-                uri: session.image,
+                uri: imageUrl,
                 priority: FastImage.priority.high,
               }}
               style={styles.image}
               resizeMode={FastImage.resizeMode.cover}
             />
 
-            <View
-              style={{
-                width: '100%',
-                position: 'absolute',
-                top: 12,
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: horizontalScale(10),
-              }}
-            >
+            <View style={styles.headerOverlay}>
               <Text style={styles.titleWhite}>{title}</Text>
 
               <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -108,28 +121,58 @@ export const SessionDetailModal: React.FC<Props> = ({
             {/* PRICE + LOCATION */}
             <View style={styles.section}>
               <Text style={styles.price}>AED {pricePerSeat}</Text>
-              <Text style={styles.sub}>{locationName}</Text>
+
+              <Text style={styles.sub}>
+                {locationDetails?.formatted_address ||
+                  locationDetails?.name ||
+                  'No location'}
+              </Text>
+
+              {mapLink && (
+                <TouchableOpacity onPress={() => Linking.openURL(mapLink)}>
+                  <Text style={styles.link}>Open in Google Maps</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
-            {/* SESSION INFO */}
+            {/* BASIC INFO */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Session Info</Text>
 
+              <DetailRow label="Activity" value={activity} />
+              <DetailRow label="Status" value={status} />
+              <DetailRow label="Start Time" value={formatDate(timeStart)} />
               <DetailRow
-                label="Start Time"
-                value={timeStart?.toDate?.().toLocaleString?.()}
+                label="Duration"
+                value={`${durationMinutes || 0} mins`}
               />
-              <DetailRow label="Duration" value={`${durationMinutes} mins`} />
             </View>
 
             {/* CAPACITY */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Capacity</Text>
 
-              <DetailRow label="Seats" value={totalSeats} />
-              <DetailRow label="Booked" value={bookedSeats} />
-              <DetailRow label="Min Riders" value={minRidersToConfirm} />
+              <DetailRow label="Total Seats" value={totalSeats} />
+              <DetailRow label="Booked Seats" value={bookedSeats} />
+              <DetailRow label="Min Riders" value={minRiders} />
               <DetailRow label="Fill Rate" value={`${fillPercent}%`} />
+            </View>
+
+            {/* RIDERS */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Riders</Text>
+
+              <DetailRow
+                label="Total Riders"
+                value={ridersProfile?.length || 0}
+              />
+
+              {ridersProfile?.map((r: any, i: number) => (
+                <View key={i} style={{ marginBottom: 8 }}>
+                  <DetailRow label="User ID" value={r.uid} />
+                  <DetailRow label="Status" value={r.status} />
+                </View>
+              ))}
             </View>
 
             {/* BOAT */}
@@ -137,9 +180,16 @@ export const SessionDetailModal: React.FC<Props> = ({
               <Text style={styles.sectionTitle}>Boat</Text>
 
               <DetailRow label="Name" value={boat?.boatName} />
-              <DetailRow label="manufacturing year" value={boat?.boatModel} />
+              <DetailRow label="Model" value={boat?.boatModel} />
               <DetailRow label="Company" value={boat?.boatCompany} />
               <DetailRow label="Capacity" value={boat?.boatCapacity} />
+
+              {boat?.imageUrl && (
+                <FastImage
+                  source={{ uri: boat.imageUrl }}
+                  style={styles.subImage}
+                />
+              )}
             </View>
 
             {/* CAPTAIN */}
@@ -154,14 +204,20 @@ export const SessionDetailModal: React.FC<Props> = ({
               {captain?.imageUrl && (
                 <FastImage
                   source={{ uri: captain.imageUrl }}
-                  style={{
-                    width: '100%',
-                    height: 200,
-                    borderRadius: horizontalScale(5),
-                    marginTop: verticalScale(5),
-                  }}
+                  style={styles.subImage}
                 />
               )}
+            </View>
+
+            {/* META */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Meta</Text>
+
+              <DetailRow label="Session ID" value={session?.id} />
+              <DetailRow
+                label="Created At"
+                value={formatDate(session?.createdAt)}
+              />
             </View>
           </ScrollView>
         </View>
@@ -194,11 +250,21 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 
+  headerOverlay: {
+    position: 'absolute',
+    top: 12,
+    width: '100%',
+    paddingHorizontal: horizontalScale(10),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
   closeBtn: {
-    width: horizontalScale(25),
-    height: horizontalScale(25),
+    width: 25,
+    height: 25,
     backgroundColor: colors.black,
-    borderRadius: horizontalScale(20),
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -207,8 +273,8 @@ const styles = StyleSheet.create({
     ...typography.cardTitle,
     color: colors.white,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: horizontalScale(5),
-    borderRadius: horizontalScale(5),
+    padding: 5,
+    borderRadius: 5,
   },
 
   section: {
@@ -219,7 +285,7 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     ...typography.cardTitle,
-    marginBottom: verticalScale(5),
+    marginBottom: verticalScale(6),
   },
 
   price: {
@@ -232,9 +298,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  link: {
+    color: colors.primary,
+    marginTop: 6,
+    fontWeight: '600',
+  },
+
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
 
   label: {
@@ -246,5 +319,14 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
     fontWeight: '600',
+    maxWidth: '60%',
+    textAlign: 'right',
+  },
+
+  subImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+    marginTop: 10,
   },
 });

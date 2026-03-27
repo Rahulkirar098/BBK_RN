@@ -85,7 +85,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
           <View style={styles.imageContainer}>
             <FastImage
               source={{
-                uri: session.image,
+                uri: session.imageUrl,
                 priority: FastImage.priority.high,
               }}
               style={styles.image}
@@ -113,9 +113,17 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
             </View>
 
             {/* Time */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: horizontalScale(5) }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: horizontalScale(5),
+              }}
+            >
               <Clock size={horizontalScale(12)} color={colors.black} />
-              <Text style={{ ...typography.small, color: colors.black }}>{formatDuration(session.durationMinutes)}</Text>
+              <Text style={{ ...typography.small, color: colors.black }}>
+                {formatDuration(session.durationMinutes)}
+              </Text>
             </View>
             {/* CAPACITY */}
             <View>
@@ -137,7 +145,9 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
                 <MapPin size={16} color={colors.primary} />
-                <Text style={styles.infoText}>{session?.locationDetails?.name}</Text>
+                <Text style={styles.infoText}>
+                  {session?.locationDetails?.name}
+                </Text>
               </View>
             </View>
 

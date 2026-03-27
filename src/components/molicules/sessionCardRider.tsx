@@ -59,7 +59,7 @@ export const SessionCardRider = ({ session, uid, onPress }: Props) => {
         <FastImage
           style={styles.image}
           source={{
-            uri: session.image,
+            uri: session.imageUrl,
             priority: FastImage.priority.high,
           }}
           resizeMode={FastImage.resizeMode.cover}
