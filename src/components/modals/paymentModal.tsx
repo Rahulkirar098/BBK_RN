@@ -45,17 +45,14 @@ export const PaymentModal = ({
 
   setCardDetails,
 
-
   saveCardDetails,
   toggleSaveCard,
-
 }: PaymentModalProps) => {
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
     try {
       setLoading(true);
-
 
       const storedUser = await AsyncStorage.getItem('bbs_user');
       if (!storedUser) throw new Error('User not logged in');
@@ -67,19 +64,19 @@ export const PaymentModal = ({
           ? 'http://10.0.2.2:3000'
           : 'http://localhost:3000';
 
-              console.log(session)
-
       const response = await fetch(`${baseUrl}/create-payment-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: session?.id,
-          operatorUid: session?.userId,
+          operatorUid: session?.operator_id,
           riderUid: user?.uid,
         }),
       });
-
+      
       const data = await response.json();
+
+      console.log(data)
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create payment intent');
@@ -150,7 +147,6 @@ export const PaymentModal = ({
                 />
               </View>
             </View>
-
 
             <CustomCheckbox
               checked={saveCardDetails}
@@ -314,7 +310,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
   },
-
 
   ///////////
   cardContainer: {

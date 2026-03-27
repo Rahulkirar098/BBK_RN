@@ -36,9 +36,7 @@ import {
 import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-
-import RNCalendarEvents from "react-native-calendar-events";
-
+import RNCalendarEvents from 'react-native-calendar-events';
 
 const db = getFirestore();
 
@@ -47,7 +45,6 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { getApp } from '@react-native-firebase/app';
 
 export const RiderDashboard = () => {
-
   // Firebase //
   const app = getApp();
   const auth = getAuth(app);
@@ -125,7 +122,7 @@ export const RiderDashboard = () => {
   const filteredSessions = useMemo(() => {
     if (!sessions?.length) return [];
 
-    console.log(sessions)
+    console.log(sessions);
 
     const now = new Date();
 
@@ -241,7 +238,7 @@ export const RiderDashboard = () => {
     if (!session) return;
 
     const sessionId = session?.id;
-    const operatorUid = session?.userId;
+    const operatorUid = session?.operator_id;
     const riderUid = uid;
 
     if (!sessionId || !operatorUid) {
@@ -273,10 +270,11 @@ export const RiderDashboard = () => {
         throw new Error('Payment confirmation failed');
       }
 
-      console.log('Payment authorized:', paymentIntent.id);
-
       // 🔥 Call backend to finalize booking
-      const baseUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+      const baseUrl =
+        Platform.OS === 'android'
+          ? 'http://10.0.2.2:3000'
+          : 'http://localhost:3000';
 
       const finalizeResponse = await fetch(`${baseUrl}/finalize-booking`, {
         method: 'POST',
@@ -297,30 +295,33 @@ export const RiderDashboard = () => {
 
       Alert.alert('Success', 'Seat reserved successfully');
 
-      saveCardToFirestore(cardDetails)
+      saveCardToFirestore(cardDetails);
 
       try {
         const permission = await RNCalendarEvents.requestPermissions();
 
-        if (permission === "authorized") {
+        if (permission === 'authorized') {
+          const startDate = new Date(session?.timeStart);
 
-          const startDate = new Date(session?.time);
-          const endDate = new Date(startDate.getTime() + session?.durationMinutes * 60000);
+          const duration = session?.durationMinutes || 0;
+
+          const endDate = new Date(startDate.getTime() + duration * 60000);
 
           const lat = session?.location?.latitude;
           const lng = session?.location?.longitude;
 
           const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
-          await RNCalendarEvents.saveEvent("Boat Riding Session", {
+          await RNCalendarEvents.saveEvent('Boat Riding Session', {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
             location: session?.locationDetails?.name,
             notes: `Your booked boat session\n\nNavigate: ${mapLink}`,
           });
 
-          Alert.alert("Event added to calendar");
-
+          Alert.alert('Event added to calendar');
+        } else {
+          Alert.alert('Please allow permission');
         }
       } catch (error) {
         console.log(error);
@@ -423,12 +424,12 @@ export const RiderDashboard = () => {
           setSessionDetailModal(true);
           setPaymentModal(false);
         }}
-        onConfirm={(session, stripeData) => handlePaymentConfirmed(session, stripeData)}
+        onConfirm={(session, stripeData) =>
+          handlePaymentConfirmed(session, stripeData)
+        }
         setCardDetails={setCardDetails}
-
         saveCardDetails={saveCardDetails}
         toggleSaveCard={toggleSaveCard}
-
       />
     </SafeAreaView>
   );
