@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import OperatorDashboard from './operator/OperatorDashboard';
+import OperatorDashboard from './operator/dashboard';
 import { RiderDashboard } from './rider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

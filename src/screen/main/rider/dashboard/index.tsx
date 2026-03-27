@@ -125,6 +125,8 @@ export const RiderDashboard = () => {
   const filteredSessions = useMemo(() => {
     if (!sessions?.length) return [];
 
+    console.log(sessions)
+
     const now = new Date();
 
     return sessions.filter(session => {

@@ -12,25 +12,21 @@ import {
   Users,
   TrendingUp,
   DollarSign,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
   BellRing,
   MapPin,
 } from 'lucide-react-native';
 import {
-  IconBtn,
   Stat,
   Empty,
-} from '../../../components/atoms';
-import { SessionCard } from '../../../components/molicules';
+} from '../../../../components/atoms';
+import { SessionCard } from '../../../../components/molicules';
 
 import {
   colors,
   horizontalScale,
   verticalScale,
   typography,
-} from '../../../theme';
+} from '../../../../theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 //Firebase
@@ -44,7 +40,6 @@ import {
   addDoc,
   onSnapshot,
   query,
-  orderBy,
   where,
   updateDoc,
   getDocs,
@@ -52,10 +47,12 @@ import {
 } from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 
-import { ActiveStatus, SESSION_STATUS } from '../../../type';
-import { pickImageFromGallery } from '../../../utils/common_logic';
-import { CreateSessionModal, SessionDetailModal } from '../../../components/modals';
-import { listenUserCollection } from '../../../services';
+import { ActiveStatus, SESSION_STATUS } from '../../../../type';
+import { pickImageFromGallery } from '../../../../utils/common_logic';
+import { CreateSessionModal, SessionDetailModal } from '../../../../components/modals';
+import { listenUserCollection } from '../../../../services';
+import OperatorDashboardHeader from './header';
+import DashboardCalendar from './calendar';
 
 const OperatorDashboard: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -412,34 +409,15 @@ const OperatorDashboard: React.FC = () => {
         nestedScrollEnabled
       >
         {/* HEADER */}
-        <View style={styles.header}>
-          <View style={{ gap: verticalScale(5) }}>
-            <Text style={styles.title}>Dashboard</Text>
-            <Text style={styles.subtitle}>Overview & Schedule</Text>
-          </View>
-
-          <View style={styles.tabSwitch}>
-            {['SCHEDULE', 'REQUESTS'].map(tab => (
-              <TouchableOpacity
-                key={tab}
-                onPress={() => setActiveTab(tab as any)}
-                style={[styles.tabBtn, activeTab === tab && styles.tabActive]}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab && styles.tabTextActive,
-                  ]}
-                >
-                  {tab}
-                </Text>
-                {tab === 'REQUESTS' && requestedSessions.length > 0 && (
-                  <View style={styles.dot} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        <OperatorDashboardHeader
+          title="Dashboard"
+          subtitle="Overview & Schedule"
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          tabs={['SCHEDULE', 'REQUESTS']}
+          showDotOn="REQUESTS"
+          dotCount={requestedSessions.length}
+        />
 
         {/* STATS */}
         <View style={styles.statsRow}>
@@ -470,90 +448,12 @@ const OperatorDashboard: React.FC = () => {
         {activeTab === 'SCHEDULE' && (
           <>
             {/* CALENDAR */}
-            <View style={styles.calendarCard}>
-              <View style={styles.calendarHeader}>
-                <View>
-                  <Text style={styles.monthText}>
-                    {selectedDate.toLocaleDateString('en-US', {
-                      month: 'long',
-                    })}
-                  </Text>
-                  <Text style={styles.monthText}>
-                    {selectedDate.toLocaleDateString('en-US', {
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </View>
-
-                <View style={styles.nav}>
-                  <IconBtn
-                    icon={<ChevronLeft />}
-                    onPress={() =>
-                      setSelectedDate(d => {
-                        const x = new Date(d);
-                        x.setDate(x.getDate() - 7);
-                        return x;
-                      })
-                    }
-                  />
-                  <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
-                    <Text style={styles.todayBtn}>Today</Text>
-                  </TouchableOpacity>
-                  <IconBtn
-                    icon={<ChevronRight />}
-                    onPress={() =>
-                      setSelectedDate(d => {
-                        const x = new Date(d);
-                        x.setDate(x.getDate() + 7);
-                        return x;
-                      })
-                    }
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.addBtn}
-                  onPress={() => setShowAddSession(true)}
-                >
-                  <Plus size={16} color={colors.white} />
-                  <Text style={styles.addText}>Add Slot</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {weekDays.map((d, i) => {
-                  const selected =
-                    d.toDateString() === selectedDate.toDateString();
-                  console.log(d.toDateString(), selectedDate.toDateString())
-                  return (
-                    <TouchableOpacity
-                      key={i}
-                      onPress={() => {
-                        setSelectedDate(d);
-                      }}
-                      style={[styles.dayBtn, selected && styles.daySelected]}
-                    >
-                      <Text
-                        style={[
-                          styles.dayLabel,
-                          { color: selected ? colors.white : '#6b7280' },
-                        ]}
-                      >
-                        {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.dayNumber,
-                          { color: selected ? colors.white : '#6b7280' },
-                        ]}
-                      >
-                        {d.getDate()}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
+            <DashboardCalendar
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              weekDays={weekDays}
+              onAddPress={() => setShowAddSession(true)}
+            />
 
             {/* SESSIONS */}
             {scheduledSessions.length === 0 ? (
@@ -578,7 +478,7 @@ const OperatorDashboard: React.FC = () => {
                         })
                         : '--'
                     }
-                    durationHours={session.durationMinutes / 60}
+                    durationHours={session.durationMinutes}
                     bookedSeats={session.bookedSeats}
                     totalSeats={session.totalSeats}
                     pricePerSeat={session.pricePerSeat}
@@ -665,135 +565,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: {
-    ...typography.screenTitle,
-    color: colors.textPrimary,
-  },
-
-  subtitle: {
-    ...typography.small,
-    color: colors.textSecondary,
-  },
-
-  tabSwitch: {
-    flexDirection: 'row',
-    backgroundColor: colors.gray200,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  tabBtn: {
-    padding: horizontalScale(8),
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-  },
-  tabText: {
-    ...typography.boldSmall,
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.textPrimary,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.orange500,
-    marginLeft: 4,
-  },
 
   statsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
     marginVertical: 16,
-  },
-
-  calendarCard: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: verticalScale(10),
-  },
-  monthText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  nav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-  },
-  todayBtn: {
-    ...typography.boldSmall,
-    color: colors.primary,
-  },
-
-  addBtn: {
-    flexDirection: 'row',
-    backgroundColor: colors.primary,
-    padding: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    gap: 6,
-  },
-  addText: {
-    color: colors.white,
-    fontWeight: '700',
-  },
-
-  dayBtn: {
-    padding: 12,
-    alignItems: 'center',
-    minWidth: horizontalScale(50),
-    maxWidth: horizontalScale(50),
-    minHeight: verticalScale(50),
-    maxHeight: verticalScale(50),
-    gap: horizontalScale(8),
-  },
-  daySelected: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-  },
-  dayLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-
-  dayNumber: {
-    ...typography.cardTitle,
-    fontWeight: '700',
-    color: colors.textPrimary,
   },
 
   sessionCard: {

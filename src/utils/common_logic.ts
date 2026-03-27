@@ -34,3 +34,4 @@ export const formatDuration = (minutes: number) => {
 
     return `${mins} min`;
   };
+  

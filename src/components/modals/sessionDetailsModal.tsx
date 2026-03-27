@@ -237,8 +237,8 @@ const styles = StyleSheet.create({
     top: 20,
     right: 20,
     zIndex: 10,
-    backgroundColor: colors.gray900,
-    padding: 8,
+    backgroundColor: colors.black,
+    padding: horizontalScale(5),
     borderRadius: 20,
   },
   imageContainer: {

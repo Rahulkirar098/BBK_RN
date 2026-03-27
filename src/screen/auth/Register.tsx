@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
-  ScrollView,
   TouchableOpacity,
   Platform,
 } from 'react-native';
@@ -14,6 +13,11 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+
+import { Linking } from 'react-native';
+
+
+
 /* ---------------- FIREBASE ---------------- */
 
 import { getApp } from '@react-native-firebase/app';

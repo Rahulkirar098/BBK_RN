@@ -13,7 +13,8 @@ import {
   Copy,
 } from 'lucide-react-native';
 
-import { colors, typography } from '../../theme';
+import { colors, horizontalScale, typography } from '../../theme';
+import { formatDuration } from '../../utils/common_logic';
 
 interface SessionCardProps {
   title: string;
@@ -53,7 +54,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
             <View style={styles.metaRow}>
               <Text style={styles.timeBadge}>{time}</Text>
               <Text style={styles.duration}>
-                {durationHours} Hours
+                {formatDuration(durationHours)}
               </Text>
             </View>
           </View>
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: horizontalScale(5),
   },
 
   seatsText: {

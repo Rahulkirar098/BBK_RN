@@ -8,7 +8,7 @@ import {
     StyleSheet,
 } from 'react-native';
 import { X } from 'lucide-react-native';
-import { colors, typography, verticalScale } from '../../theme';
+import { colors, horizontalScale, typography, verticalScale } from '../../theme';
 
 interface SessionDetailProps {
     visible: boolean;
@@ -38,8 +38,15 @@ export const SessionDetailModal: React.FC<SessionDetailProps> = ({
                             {session?.title || 'Session Details'}
                         </Text>
 
-                        <TouchableOpacity onPress={onClose}>
-                            <X size={20} />
+                        <TouchableOpacity
+                            style={{
+                                borderRadius: '50%',
+                                padding: horizontalScale(5),
+                                backgroundColor: colors.black
+                            }}
+                            onPress={onClose}
+                        >
+                            <X size={20} color={colors.white} />
                         </TouchableOpacity>
                     </View>
 
@@ -73,9 +80,7 @@ export const SessionDetailModal: React.FC<SessionDetailProps> = ({
                             return (
                                 <View key={key} style={styles.detailRow}>
                                     <Text style={styles.detailKey}>{key}</Text>
-                                    <Text style={styles.detailValue}>
-                                        {String(displayValue)}
-                                    </Text>
+                                    <Text style={styles.detailValue}>{String(displayValue)}</Text>
                                 </View>
                             );
                         })}
