@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RiderProfile } from './rider/profile';
-import OperatorProfile from './operator/OperatorProfile';
+import { OperatorProfile } from './operator/profile/';
 
 const Profile = () => {
   const [role, setRole] = useState<string | null>(null);

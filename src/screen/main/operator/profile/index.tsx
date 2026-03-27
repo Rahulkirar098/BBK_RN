@@ -21,20 +21,20 @@ import {
   deleteDoc,
 } from '@react-native-firebase/firestore';
 
-import { listenUserCollection } from "../../../services";
+import { listenUserCollection } from "../../../../services";
 
 import {
   StatCard,
   ProfileCard,
   OutlinedButton,
-} from '../../../components/atoms';
+} from '../../../../components/atoms';
 
 import {
   colors,
   typography,
   horizontalScale,
   verticalScale,
-} from '../../../theme';
+} from '../../../../theme';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -42,11 +42,11 @@ import {
   ActivityManagerModal,
   BoatManagerModal,
   CaptainManagerModal
-} from '../../../components/modals';
+} from '../../../../components/modals';
 
 import { getApp } from '@react-native-firebase/app';
 
-const OperatorProfile = () => {
+export const OperatorProfile = () => {
 
   const app = getApp();
   const auth = getAuth(app);

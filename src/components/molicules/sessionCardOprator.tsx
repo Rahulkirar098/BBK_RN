@@ -45,9 +45,9 @@ export const SessionCard: React.FC<SessionCardProps> = ({
 }) => {
   return (
     <View style={styles.card}>
-      <View style={styles.content}>
+      <TouchableOpacity style={styles.content} onPress={onPress}>
         {/* HEADER */}
-        <TouchableOpacity style={styles.header} onPress={onPress}>
+        <View style={styles.header}>
           <View>
             <Text style={styles.title}>{title}</Text>
 
@@ -92,9 +92,8 @@ export const SessionCard: React.FC<SessionCardProps> = ({
               </Text>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* STATS */}
         <View style={styles.statsRow}>
           <Text style={styles.seatsText}>
             {bookedSeats} / {totalSeats} Seats
@@ -119,26 +118,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
             ]}
           />
         </View>
-      </View>
-
-      {/* ACTIONS */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          onPress={onEdit}
-          activeOpacity={0.8}
-          style={styles.actionBtn}
-        >
-          <Edit2 size={18} color={colors.gray500} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={onCopy}
-          activeOpacity={0.8}
-          style={styles.actionBtn}
-        >
-          <Copy size={18} color={colors.gray500} />
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };

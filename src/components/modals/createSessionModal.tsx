@@ -6,101 +6,202 @@ import {
     TouchableOpacity,
     ScrollView,
     Modal,
-    TextInput,
     Image,
+    Alert,
+    TextInput,
 } from 'react-native';
 
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-import {
-    MapPin,
-    GalleryHorizontal
-} from 'lucide-react-native';
+import { MapPin, GalleryHorizontal } from 'lucide-react-native';
 
 import { Button, Input, Select } from '../atoms';
-import { colors, horizontalScale, typography, verticalScale } from '../../theme';
+import {
+    colors,
+    horizontalScale,
+    typography,
+    verticalScale,
+} from '../../theme';
+
 import LocationPickerModal from './mapModal';
 
-interface CreateSessionModalProps {
-    visible: boolean;
-    onClose: () => void;
+import { getAuth } from '@react-native-firebase/auth';
+import {
+    getFirestore,
+    collection,
+    addDoc,
+    serverTimestamp,
+    Timestamp,
+} from '@react-native-firebase/firestore';
 
-    boatOptions: any;
-    captainOptions: any;
+import storage from '@react-native-firebase/storage';
 
-    boats: any;
-    captains: any;
-
-    handleSubmitAddSlot: () => void;
-    isUploading: boolean;
-
-    sessionForm: any;
-    handleChangeAddSlot: (key: string, value: any) => void;
-
-    showDatePicker: boolean;
-    showTimePicker: boolean;
-    setShowDatePicker: (value: any) => void;
-    setShowTimePicker: (value: any) => void;
-
-    formatDate: (value: any) => any;
-    formatTime: (value: any) => any;
-
-    pickImage: () => void;
-
-    activities: Array<any>
-}
+import { pickImageFromGallery } from '../../utils/common_logic';
+import { SESSION_STATUS } from '../../type';
 
 export const CreateSessionModal = ({
     visible,
     onClose,
-    boatOptions,
-    captainOptions,
     boats,
     captains,
-    handleSubmitAddSlot,
-    isUploading,
-    sessionForm,
-    handleChangeAddSlot,
-    formatTime,
-    formatDate,
-    setShowDatePicker,
-    showDatePicker,
-    showTimePicker,
-    setShowTimePicker,
-    pickImage,
-    activities
-}: CreateSessionModalProps) => {
+    activities,
+    onSuccess,
+}: any) => {
+    const auth = getAuth();
+    const db = getFirestore();
+
+    const [isUploading, setIsUploading] = useState(false);
     const [mapVisible, setMapVisible] = useState(false);
+
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+
+    const [form, setForm] = useState<any>({
+        title: '',
+        activity: '',
+        date: new Date(),
+        time: new Date(),
+        boat: null,
+        captain: null,
+        image: null,
+        totalSeats: 0,
+        minRiders: 0,
+        pricePerSeat: 0,
+        location: {},
+        locationDetails: {},
+    });
+
+    const handleChange = (key: string, value: any) => {
+        setForm((p: any) => ({ ...p, [key]: value }));
+    };
+
+    const formatDate = (d: Date) =>
+        d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+
+    const formatTime = (d: Date) =>
+        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const validate = () => {
+        if (!form.title) return 'Title required';
+        if (!form.activity) return 'Activity required';
+        if (!form.boat) return 'Boat required';
+        if (!form.captain) return 'Captain required';
+        if (!form.location?.latitude) return 'Location required';
+
+        if (form.totalSeats <= 0) return 'Seats must be > 0';
+        if (form.minRiders > form.totalSeats)
+            return 'Min riders cannot exceed seats';
+
+        return null;
+    };
+
+    const handleSubmit = async () => {
+        if (isUploading) return;
+
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+
+        const error = validate();
+        if (error) {
+            Alert.alert('Error', error);
+            return;
+        }
+
+        try {
+            setIsUploading(true);
+
+            const start = new Date(form.date);
+            start.setHours(form.time.getHours(), form.time.getMinutes());
+
+            let imageUrl = null;
+
+            if (form.image?.uri) {
+                const ref = storage().ref(`slots/${uid}/${Date.now()}.jpg`);
+                await ref.putFile(form.image.uri);
+                imageUrl = await ref.getDownloadURL();
+            }
+
+            const selectedActivity = activities.find(
+                (a: any) => a.value === form.activity
+            );
+
+            await addDoc(collection(db, 'slots'), {
+                ...form,
+                image: imageUrl,
+                durationMinutes: selectedActivity?.durationMinutes || 0,
+                timeStart: Timestamp.fromDate(start),
+                status: SESSION_STATUS.OPEN,
+                bookedSeats: 0,
+                createdAt: serverTimestamp(),
+                operator_id: uid,
+            });
+
+            onSuccess?.();
+            onClose();
+
+            setForm({
+                title: '',
+                activity: '',
+                date: new Date(),
+                time: new Date(),
+                boat: null,
+                captain: null,
+                image: null,
+                totalSeats: 0,
+                minRiders: 0,
+                pricePerSeat: 0,
+                location: {},
+                locationDetails: {},
+            });
+        } catch (e) {
+            console.log(e);
+            Alert.alert('Error', 'Failed to create session');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const pickImage = async () => {
+        const img = await pickImageFromGallery();
+        if (img) handleChange('image', img);
+    };
+
+    const boatOptions = boats.map((b: any) => ({
+        label: b.boatName,
+        value: b.id,
+    }));
+
+    const captainOptions = captains.map((c: any) => ({
+        label: c.name,
+        value: c.id,
+    }));
+
+    const revenue =
+        form.minRiders * form.pricePerSeat || 0;
+
     return (
-        <Modal
-            visible={visible}
-            transparent
-            animationType="fade"
-            statusBarTranslucent
-        >
+        <Modal visible={visible} transparent animationType="fade">
             <View style={styles.overlay}>
                 <View style={styles.modal}>
                     {/* HEADER */}
                     <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>List Available Slot</Text>
+                        <Text style={styles.modalTitle}>Create Session</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Text style={{ fontWeight: 'bold' }}>X</Text>
+                            <Text style={styles.close}>✕</Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* BODY */}
                     <ScrollView showsVerticalScrollIndicator={false}>
                         <Input
-                            placeholder="Title"
-                            value={sessionForm.title}
-                            onChangeText={v => handleChangeAddSlot('title', v)}
+                            placeholder="Session title"
+                            value={form.title}
+                            onChangeText={v => handleChange('title', v)}
                         />
 
                         <Select
                             label="Activity"
                             options={activities}
-                            value={sessionForm.activity}
-                            onChange={v => handleChangeAddSlot('activity', v)}
+                            value={form.activity}
+                            onChange={v => handleChange('activity', v)}
                         />
 
                         {/* DATE & TIME */}
@@ -109,59 +210,64 @@ export const CreateSessionModal = ({
                                 style={styles.inputBox}
                                 onPress={() => setShowDatePicker(true)}
                             >
-                                <Text>{formatDate(sessionForm.date)}</Text>
+                                <Text>{formatDate(form.date)}</Text>
                             </TouchableOpacity>
-
-                            {showDatePicker && (
-                                <DateTimePicker
-                                    value={sessionForm.date}
-                                    mode="date"
-                                    onChange={(_, d) => {
-                                        setShowDatePicker(false);
-                                        d && handleChangeAddSlot('date', d);
-                                    }}
-                                />
-                            )}
-
-                            {showTimePicker && (
-                                <DateTimePicker
-                                    value={sessionForm.time}
-                                    mode="time"
-                                    onChange={(_, d) => {
-                                        setShowTimePicker(false);
-                                        d && handleChangeAddSlot('time', d);
-                                    }}
-                                />
-                            )}
 
                             <TouchableOpacity
                                 style={styles.inputBox}
                                 onPress={() => setShowTimePicker(true)}
                             >
-                                <Text>{formatTime(sessionForm.time)}</Text>
+                                <Text>{formatTime(form.time)}</Text>
                             </TouchableOpacity>
                         </View>
 
-                        {/* BOAT & CAPTAIN */}
+                        {/* PICKERS */}
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={form.date}
+                                mode="date"
+                                onChange={(_, d) => {
+                                    setShowDatePicker(false);
+                                    d && handleChange('date', d);
+                                }}
+                            />
+                        )}
+
+                        {showTimePicker && (
+                            <DateTimePicker
+                                value={form.time}
+                                mode="time"
+                                onChange={(_, d) => {
+                                    setShowTimePicker(false);
+                                    d && handleChange('time', d);
+                                }}
+                            />
+                        )}
+
+                        {/* BOAT + CAPTAIN */}
                         <View style={styles.row}>
                             <Select
                                 label="Boat"
                                 options={boatOptions}
-                                value={sessionForm.boat?.id}
-                                onChange={id => {
-                                    const boat = boats.find((b: any) => b.id === id);
-                                    if (boat) handleChangeAddSlot('boat', boat);
-                                }}
+                                value={form.boat?.id}
+                                onChange={id =>
+                                    handleChange(
+                                        'boat',
+                                        boats.find((b: any) => b.id === id)
+                                    )
+                                }
                             />
 
                             <Select
                                 label="Captain"
                                 options={captainOptions}
-                                value={sessionForm.captain?.id}
-                                onChange={id => {
-                                    const captain = captains.find((c: any) => c.id === id);
-                                    if (captain) handleChangeAddSlot('captain', captain);
-                                }}
+                                value={form.captain?.id}
+                                onChange={id =>
+                                    handleChange(
+                                        'captain',
+                                        captains.find((c: any) => c.id === id)
+                                    )
+                                }
                             />
                         </View>
 
@@ -171,74 +277,65 @@ export const CreateSessionModal = ({
                             <Text>Select Image</Text>
                         </TouchableOpacity>
 
-                        {sessionForm.image?.uri && (
-                            <Image
-                                source={{ uri: sessionForm.image.uri }}
-                                style={styles.image}
-                            />
+                        {form.image?.uri && (
+                            <Image source={{ uri: form.image.uri }} style={styles.image} />
                         )}
 
+                        {/* LOCATION */}
                         <TouchableOpacity
                             style={styles.imageBtn}
                             onPress={() => setMapVisible(true)}
                         >
                             <MapPin size={16} />
-                            <Text>{sessionForm?.locationDetails?.name ? sessionForm.locationDetails.name : "Add location"}</Text>
+                            <Text>
+                                {form.locationDetails?.name || 'Add location'}
+                            </Text>
                         </TouchableOpacity>
 
-                        {/* REVENUE FLOOR */}
+                        {/* REVENUE */}
                         <View style={styles.revenueBox}>
-                            <Text style={styles.revenueTitle}>Guaranteed Revenue Floor</Text>
+                            <Text style={styles.revenueTitle}>Revenue Setup</Text>
 
                             <View style={styles.row}>
-                                <View style={{ width: horizontalScale(100), gap: horizontalScale(5) }}>
-                                    <Text style={{ textAlign: 'center' }}>Seats</Text>
-                                    <TextInput
-                                        keyboardType="numeric"
-                                        placeholder="Seats"
-                                        style={styles.number}
-                                        value={String(sessionForm.totalSeats)}
-                                        onChangeText={v =>
-                                            handleChangeAddSlot('totalSeats', Number(v))
-                                        }
-                                    />
-                                </View>
+                                <TextInput
+                                    placeholder="Seats"
+                                    keyboardType="numeric"
+                                    style={styles.number}
+                                    value={String(form.totalSeats)}
+                                    onChangeText={v =>
+                                        handleChange('totalSeats', Number(v))
+                                    }
+                                />
 
-                                <View style={{ width: horizontalScale(100), gap: horizontalScale(5) }}>
-                                    <Text style={{ textAlign: 'center' }}>Min Riders</Text>
-                                    <TextInput
-                                        keyboardType="numeric"
-                                        placeholder="Min Riders"
-                                        style={styles.number}
-                                        value={String(sessionForm.minRiders)}
-                                        onChangeText={v =>
-                                            handleChangeAddSlot('minRiders', Number(v))
-                                        }
-                                    />
-                                </View>
-                                <View style={{ width: horizontalScale(100), gap: horizontalScale(5) }}>
-                                    <Text style={{ textAlign: 'center' }}>Price</Text>
-                                    <TextInput
-                                        keyboardType="numeric"
-                                        placeholder="Price"
-                                        style={styles.number}
-                                        value={String(sessionForm.pricePerSeat)}
-                                        onChangeText={v =>
-                                            handleChangeAddSlot('pricePerSeat', Number(v))
-                                        }
-                                    />
-                                </View>
+                                <TextInput
+                                    placeholder="Min Riders"
+                                    keyboardType="numeric"
+                                    style={styles.number}
+                                    value={String(form.minRiders)}
+                                    onChangeText={v =>
+                                        handleChange('minRiders', Number(v))
+                                    }
+                                />
+
+                                <TextInput
+                                    placeholder="Price"
+                                    keyboardType="numeric"
+                                    style={styles.number}
+                                    value={String(form.pricePerSeat)}
+                                    onChangeText={v =>
+                                        handleChange('pricePerSeat', Number(v))
+                                    }
+                                />
                             </View>
 
                             <Text style={styles.revenueText}>
-                                Trip confirms automatically when revenue hits AED{' '}
-                                {sessionForm.minRiders * sessionForm.pricePerSeat}
+                                Trip confirms automatically when revenue hits AED{' '}{revenue}
                             </Text>
                         </View>
 
                         <Button
-                            label={isUploading ? 'Listing...' : 'List Session'}
-                            onPress={handleSubmitAddSlot}
+                            label={isUploading ? 'Creating...' : 'Create Session'}
+                            onPress={handleSubmit}
                             disabled={isUploading}
                         />
                     </ScrollView>
@@ -248,9 +345,9 @@ export const CreateSessionModal = ({
             <LocationPickerModal
                 visible={mapVisible}
                 onClose={() => setMapVisible(false)}
-                onSelectLocation={(loc, googlePlace) => {
-                    handleChangeAddSlot('locationDetails', googlePlace);
-                    handleChangeAddSlot('location', loc);
+                onSelectLocation={(loc, place) => {
+                    handleChange('location', loc);
+                    handleChange('locationDetails', place);
                 }}
             />
         </Modal>
@@ -269,7 +366,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
         borderRadius: 16,
         padding: 16,
-        height: verticalScale(500)
+        maxHeight: '90%',
     },
 
     modalHeader: {
@@ -281,6 +378,11 @@ const styles = StyleSheet.create({
     modalTitle: {
         ...typography.sectionTitle,
         color: colors.textPrimary,
+    },
+
+    close: {
+        fontSize: 18,
+        fontWeight: '600',
     },
 
     row: {
@@ -307,10 +409,10 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         marginBottom: 12,
         backgroundColor: colors.background,
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        gap: 10
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 10,
     },
 
     image: {

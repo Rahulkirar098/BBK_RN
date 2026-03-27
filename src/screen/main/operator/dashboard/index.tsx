@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import {
   Calendar,
@@ -29,27 +28,26 @@ import {
 } from '../../../../theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-//Firebase
+// Firebase
 import { getApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
 import {
   getFirestore,
   doc,
-  serverTimestamp,
   collection,
-  addDoc,
   onSnapshot,
   query,
   where,
   updateDoc,
-  getDocs,
-  Timestamp,
 } from '@react-native-firebase/firestore';
-import storage from '@react-native-firebase/storage';
 
 import { ActiveStatus, SESSION_STATUS } from '../../../../type';
-import { pickImageFromGallery } from '../../../../utils/common_logic';
-import { CreateSessionModal, SessionDetailModal } from '../../../../components/modals';
+
+import {
+  CreateSessionModal,
+  SessionDetailModal,
+} from '../../../../components/modals';
+
 import { listenUserCollection } from '../../../../services';
 import OperatorDashboardHeader from './header';
 import DashboardCalendar from './calendar';
@@ -59,179 +57,8 @@ const OperatorDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveStatus>('SCHEDULE');
   const [showAddSession, setShowAddSession] = useState(false);
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
-  const [sessionForm, setSessionForm] = useState<any>({
-    title: '',
-    activity: '',
-    date: new Date(),
-    time: new Date(),
-    boat: null,
-    captain: null,
-    image: null,
-    totalSeats: 0,
-    minRiders: 0,
-    pricePerSeat: 0,
-    durationMinutes: 0,
-    location: {},
-    locationDetails: {}
-  });
-
-  const handleChangeAddSlot = (key: string, value: any) => {
-    setSessionForm((prev: any) => ({ ...prev, [key]: value }));
-  };
-
-  const pickImage = async () => {
-    const image = await pickImageFromGallery();
-    if (image) {
-      setSessionForm((prev: any) => ({
-        ...prev,
-        image,
-      }));
-    }
-  };
-
-  const handleResetSessionForm = () => {
-    setSessionForm({
-      title: '',
-      activity: '',
-      date: new Date(),
-      time: new Date(),
-      boat: null,
-      captain: null,
-      image: null,
-      totalSeats: 0,
-      minRiders: 0,
-      pricePerSeat: 0,
-      durationMinutes: 0,
-      location: {},
-      locationDetails: {}
-    })
-  }
-
-  const formatDate = (d: Date) =>
-    d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
-
-  const formatTime = (d: Date) =>
-    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  const validateSlot = () => {
-    if (!sessionForm.title) return 'Title required';
-    if (!sessionForm.activity) return 'Activity required';
-    if (!sessionForm.boat) return 'Boat required';
-    if (!sessionForm.captain) return 'Captain required';
-    if (!sessionForm.date) return 'Date required';
-    if (!sessionForm.time) return 'Time required';
-    if (!sessionForm.location) return 'location required';
-
-    if (sessionForm.totalSeats <= 0)
-      return 'Total seats must be greater than 0';
-
-    if (sessionForm.minRiders > sessionForm.totalSeats)
-      return 'Min riders cannot exceed total seats';
-
-    return null;
-  };
-
-  const handleSubmitAddSlot = async () => {
-    if (isUploading) return;
-
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
-
-    const error = validateSlot();
-    if (error) {
-      Alert.alert('Validation Error', error);
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-
-      // ⏰ Merge Date + Time
-      const start = new Date(sessionForm.date);
-      start.setHours(
-        sessionForm.time.getHours(),
-        sessionForm.time.getMinutes(),
-        0,
-        0,
-      );
-
-      const now = new Date();
-      const GRACE = 60 * 1000;
-
-      // 🚫 Prevent past session
-      if (start.getTime() < now.getTime() - GRACE) {
-        Alert.alert('Invalid Time', 'Cannot create a session in the past.');
-        return;
-      }
-
-      let imageUrl: string | null = null;
-
-      // 📤 Upload image (if selected)
-      if (sessionForm.image?.uri) {
-        const imageRef = storage().ref(`slots/${uid}/${Date.now()}.jpg`);
-
-        await imageRef.putFile(sessionForm.image.uri);
-        imageUrl = await imageRef.getDownloadURL();
-      }
-
-      const selectedOption = activities.find(
-        item => item.value === sessionForm.activity
-      );
-
-      const payload = {
-        title: sessionForm.title,
-        activity: sessionForm.activity,
-        image: imageUrl,
-        totalSeats: sessionForm.totalSeats,
-        minRidersToConfirm: sessionForm.minRiders,
-        pricePerSeat: sessionForm.pricePerSeat,
-
-        // ✅ Duration calculated here
-        durationMinutes: selectedOption?.durationMinutes || 0,
-
-        boat: sessionForm.boat,
-        captain: sessionForm.captain,
-
-        timeStart: Timestamp.fromDate(start),
-
-        date: start.toISOString(),
-        time: start.toISOString(),
-
-        userId: uid,
-
-        bookedSeats: 0,
-        ridersProfile: [],
-
-        status: SESSION_STATUS.OPEN, // ✅ NEW
-
-        createdAt: serverTimestamp(),
-        location: sessionForm.location,
-        locationDetails: sessionForm.locationDetails,
-
-        operator_id: uid
-      };
-
-      await addDoc(collection(db, 'slots'), payload);
-
-      // 🔄 Reset form
-      setShowAddSession(false);
-
-      handleResetSessionForm();
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'Failed to save slot');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   /* -------------------- FIREBASE -------------------- */
   const [sessions, setSessions] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any>([]);
 
   const app = getApp();
   const auth = getAuth(app);
@@ -242,8 +69,8 @@ const OperatorDashboard: React.FC = () => {
     if (!uid) return;
 
     const q = query(
-      collection(db, "slots"),
-      where("operator_id", "==", uid)
+      collection(db, 'slots'),
+      where('operator_id', '==', uid)
     );
 
     const unsubscribe = onSnapshot(q, snapshot => {
@@ -258,28 +85,27 @@ const OperatorDashboard: React.FC = () => {
     return unsubscribe;
   }, [uid]);
 
-  const [activities, setActivities] = useState<Array<any>>([]);
-  const [boats, setBoats] = useState<Array<any>>([]);
-  const [captains, setCaptains] = useState<Array<any>>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [boats, setBoats] = useState<any[]>([]);
+  const [captains, setCaptains] = useState<any[]>([]);
 
   useEffect(() => {
-
     if (!uid) return;
 
     const unsubActivities = listenUserCollection(
-      "activities",
+      'activities',
       uid,
       setActivities
     );
 
     const unsubBoats = listenUserCollection(
-      "boats",
+      'boats',
       uid,
       setBoats
     );
 
     const unsubCaptains = listenUserCollection(
-      "captains",
+      'captains',
       uid,
       setCaptains
     );
@@ -289,38 +115,9 @@ const OperatorDashboard: React.FC = () => {
       unsubBoats();
       unsubCaptains();
     };
-
   }, [uid]);
 
-  useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
-
-    const fetchRequests = async () => {
-      const q = query(
-        collection(db, 'sessions'),
-        where('operatorId', '==', uid),
-      );
-
-      const snap = await getDocs(q);
-      setRequests(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
-    };
-
-    fetchRequests();
-  }, []);
-
-  const boatOptions = boats.map(boat => ({
-    label: boat.boatName,
-    value: boat.id,
-  }));
-
-  const captainOptions = captains.map(captain => ({
-    label: captain.name,
-    value: captain.id,
-  }));
-
   const onClaimRequest = async (sessionId: string) => {
-    const uid = auth.currentUser?.uid;
     if (!uid) return;
 
     await updateDoc(doc(db, 'slots', sessionId), {
@@ -335,20 +132,23 @@ const OperatorDashboard: React.FC = () => {
     () =>
       sessions.filter(
         s =>
-          s.status === 'min_reached' ||
-          s.status === 'full'
+          s.status === SESSION_STATUS.MIN_REACHED ||
+          s.status === SESSION_STATUS.FULL
       ),
-    [sessions],
+    [sessions]
   );
 
   const scheduledSessions = useMemo(
     () =>
       sessions.filter(s => {
-        const d = s.timeStart?.toDate();
+        if (!s.timeStart) return false;
+
+        const d = s.timeStart.toDate();
+
         return (
           s.status !== SESSION_STATUS.CLAIMED &&
           s.status !== SESSION_STATUS.CANCELLED &&
-          d?.toDateString() === selectedDate.toDateString()
+          d.toDateString() === selectedDate.toDateString()
         );
       }),
     [sessions, selectedDate]
@@ -359,6 +159,7 @@ const OperatorDashboard: React.FC = () => {
   const getWeekDays = (date: Date) => {
     const start = new Date(date);
     start.setDate(start.getDate() - start.getDay());
+
     return [...Array(7)].map((_, i) => {
       const d = new Date(start);
       d.setDate(d.getDate() + i);
@@ -366,39 +167,33 @@ const OperatorDashboard: React.FC = () => {
     });
   };
 
-  const weekDays = getWeekDays(selectedDate);
+  const weekDays = useMemo(
+    () => getWeekDays(selectedDate),
+    [selectedDate]
+  );
 
   /* -------------------- STATS -------------------- */
 
   const totalRevenue = scheduledSessions.reduce(
     (acc, s) => acc + s.bookedSeats * s.pricePerSeat,
-    0,
+    0
   );
 
   const avgFillRate =
     scheduledSessions.length === 0
       ? 0
       : Math.round(
-        (scheduledSessions.reduce(
-          (acc, s) => acc + s.bookedSeats / s.totalSeats,
-          0,
-        ) /
-          scheduledSessions.length) *
-        100,
-      );
+          (scheduledSessions.reduce(
+            (acc, s) => acc + s.bookedSeats / s.totalSeats,
+            0
+          ) /
+            scheduledSessions.length) *
+            100
+        );
 
-  /* -------------------- RENDER -------------------- */
+  /* -------------------- SESSION DETAILS -------------------- */
 
-  /* -------------------- MODAL -------------------- */
-
-  const handleCloseSlotModal = () => {
-    setShowAddSession(false);
-    handleResetSessionForm();
-  };
-
-  /* -------------------- MODAL FOR SESSION SETAILS -------------------- */
-
-  const [showSessionDetails, setShowSessionDetails] = useState<boolean>(false);
+  const [showSessionDetails, setShowSessionDetails] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>({});
 
   return (
@@ -406,9 +201,7 @@ const OperatorDashboard: React.FC = () => {
       <ScrollView
         style={{ paddingHorizontal: horizontalScale(20) }}
         contentContainerStyle={{ paddingBottom: 120 }}
-        nestedScrollEnabled
       >
-        {/* HEADER */}
         <OperatorDashboardHeader
           title="Dashboard"
           subtitle="Overview & Schedule"
@@ -419,7 +212,6 @@ const OperatorDashboard: React.FC = () => {
           dotCount={requestedSessions.length}
         />
 
-        {/* STATS */}
         <View style={styles.statsRow}>
           <Stat
             icon={<Calendar size={14} />}
@@ -444,10 +236,8 @@ const OperatorDashboard: React.FC = () => {
           />
         </View>
 
-        {/* SCHEDULE */}
         {activeTab === 'SCHEDULE' && (
           <>
-            {/* CALENDAR */}
             <DashboardCalendar
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
@@ -455,7 +245,6 @@ const OperatorDashboard: React.FC = () => {
               onAddPress={() => setShowAddSession(true)}
             />
 
-            {/* SESSIONS */}
             {scheduledSessions.length === 0 ? (
               <Empty
                 text="No sessions scheduled."
@@ -465,17 +254,22 @@ const OperatorDashboard: React.FC = () => {
               scheduledSessions.map(session => {
                 const confirmed =
                   session.bookedSeats >= session.minRidersToConfirm;
-                const fill = (session.bookedSeats / session.totalSeats) * 100;
+
+                const fill =
+                  (session.bookedSeats / session.totalSeats) * 100;
+
                 return (
                   <SessionCard
                     key={session.id}
                     title={session.title}
                     time={
                       session.timeStart
-                        ? session.timeStart?.toDate().toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
+                        ? session.timeStart
+                            .toDate()
+                            .toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
                         : '--'
                     }
                     durationHours={session.durationMinutes}
@@ -485,12 +279,9 @@ const OperatorDashboard: React.FC = () => {
                     confirmed={confirmed}
                     fillPercent={fill}
                     onPress={() => {
-                      setSelectedSession(session)
-                      setShowSessionDetails(true)
-
+                      setSelectedSession(session);
+                      setShowSessionDetails(true);
                     }}
-                  // onEdit={() => {console.log(session)   }}
-                  // onCopy={() => console.log('copy session', session.id)}
                   />
                 );
               })
@@ -498,7 +289,6 @@ const OperatorDashboard: React.FC = () => {
           </>
         )}
 
-        {/* REQUESTS */}
         {activeTab === 'REQUESTS' &&
           (requestedSessions.length === 0 ? (
             <Empty
@@ -518,7 +308,7 @@ const OperatorDashboard: React.FC = () => {
 
                 <TouchableOpacity
                   style={styles.claimBtn}
-                  onPress={() => onClaimRequest?.(s.id)}
+                  onPress={() => onClaimRequest(s.id)}
                 >
                   <Text style={styles.claimText}>Claim Trip</Text>
                 </TouchableOpacity>
@@ -527,7 +317,6 @@ const OperatorDashboard: React.FC = () => {
           ))}
       </ScrollView>
 
-      {/* MOVE MODAL HERE */}
       <SessionDetailModal
         visible={showSessionDetails}
         onClose={() => setShowSessionDetails(false)}
@@ -536,22 +325,9 @@ const OperatorDashboard: React.FC = () => {
 
       <CreateSessionModal
         visible={showAddSession}
-        onClose={handleCloseSlotModal}
-        boatOptions={boatOptions}
-        captainOptions={captainOptions}
+        onClose={() => setShowAddSession(false)}
         boats={boats}
         captains={captains}
-        handleSubmitAddSlot={handleSubmitAddSlot}
-        isUploading={isUploading}
-        sessionForm={sessionForm}
-        handleChangeAddSlot={handleChangeAddSlot}
-        formatDate={formatDate}
-        formatTime={formatTime}
-        pickImage={pickImage}
-        showDatePicker={showDatePicker}
-        showTimePicker={showTimePicker}
-        setShowDatePicker={setShowDatePicker}
-        setShowTimePicker={setShowTimePicker}
         activities={activities}
       />
     </SafeAreaView>
