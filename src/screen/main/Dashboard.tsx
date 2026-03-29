@@ -14,11 +14,16 @@ const Dashboard = () => {
       try {
         const storedRole = await AsyncStorage.getItem('bbs_user');
         const onBoardStatus = await AsyncStorage.getItem('onBoardStatus');
-        if (onBoardStatus === 'pending') {
-          navigation.replace('register');
+
+        console.log(onBoardStatus, '===@@@ 1122');
+
+        const role = JSON.parse(storedRole || '{}').role;
+
+        if (onBoardStatus === 'raj') {
+          navigation.replace('register', { role });
           return;
         }
-        setRole(JSON.parse(storedRole || '{}').role);
+        setRole(role);
       } catch (e) {
         console.log('Error reading role', e);
       } finally {

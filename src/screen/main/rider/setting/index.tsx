@@ -117,6 +117,7 @@ export const Setting = () => {
   const logout = async () => {
     await auth().signOut();
     await AsyncStorage.removeItem('bbs_user');
+    await AsyncStorage.removeItem('onBoardStatus');
     navigation.replace('role-selection');
   };
 
@@ -143,19 +144,19 @@ export const Setting = () => {
       </SafeAreaView>
     );
   }
-  console.log(riderData?.userProfile?.emiratesId)
+  console.log(riderData?.userProfile?.emiratesId);
   /* ---------------- MAIN UI ---------------- */
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <SettingsHeader goBack={goBack} />
-        <EmiratesIdSection idData={riderData?.userProfile?.emiratesId}/>
+        <EmiratesIdSection idData={riderData?.userProfile?.emiratesId} />
         <PaymentMethodsSection cards={cards} onRemove={deleteCard} />
         <LanguageNotificationsSection
           language={riderData?.userProfile?.language}
-          setLanguage={() => { }}
+          setLanguage={() => {}}
         />
-        <SettingsActions onResetData={() => { }} onLogout={logout} />
+        <SettingsActions onResetData={() => {}} onLogout={logout} />
       </View>
     </SafeAreaView>
   );

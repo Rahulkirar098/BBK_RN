@@ -16,7 +16,6 @@ import RequestTripCard from './requestTripCard';
 import TimeFilterBar from './timeLineTabs';
 import { SessionCardRider } from '../../../../components/molicules';
 import {
-  InfoModal,
   PaymentModal,
   SessionDetailCard,
   WaiverModal,
@@ -42,8 +41,11 @@ const db = getFirestore();
 
 // ---------- Stripe ---------- //
 import { useStripe } from '@stripe/stripe-react-native';
+import { initStripe } from '@stripe/stripe-react-native';
+
 import { getApp } from '@react-native-firebase/app';
 import { mapDirection } from '../../../../utils/common_logic';
+import { stripKey } from '../../../../config';
 
 export const RiderDashboard = () => {
   // Firebase //
@@ -122,8 +124,6 @@ export const RiderDashboard = () => {
   // ---------- Filtered Sessions ---------- //
   const filteredSessions = useMemo(() => {
     if (!sessions?.length) return [];
-
-    console.log(sessions);
 
     const now = new Date();
 
@@ -256,14 +256,22 @@ export const RiderDashboard = () => {
         throw new Error('Missing client secret');
       }
 
+      await initStripe({
+        publishableKey: stripKey,
+        stripeAccountId: session?.stripeAccountId, // 🔥 KEY FIX
+      });
+
       // Confirm payment
       const { error, paymentIntent } = await stripe.confirmPayment(
         clientSecret,
         { paymentMethodType: 'Card' },
       );
 
+      console.log(paymentIntent);
+
       if (error) {
         Alert.alert('Payment failed', error.message || 'Try again');
+        console.log(error.message);
         return;
       }
 
@@ -284,10 +292,11 @@ export const RiderDashboard = () => {
           paymentIntentId: paymentIntent.id,
         }),
       });
-      
+
       const finalizeData = await finalizeResponse.json();
 
       if (!finalizeResponse.ok) {
+        console.log('error', '===@@@');
         throw new Error(finalizeData.error || 'Booking failed');
       }
 
@@ -308,7 +317,7 @@ export const RiderDashboard = () => {
           const lat = session?.location?.latitude;
           const lng = session?.location?.longitude;
 
-          const mapLink = mapDirection(lat,lng);
+          const mapLink = mapDirection(lat, lng);
 
           await RNCalendarEvents.saveEvent('Boat Riding Session', {
             startDate: startDate.toISOString(),
@@ -320,14 +329,14 @@ export const RiderDashboard = () => {
           Alert.alert('Please allow permission');
         }
       } catch (error) {
-        console.log(error);
+        console.log(error, '===@@@');
       }
 
       setPaymentModal(false);
       setSelectedSession(null);
       handleWaiverClear();
     } catch (err: any) {
-      console.log(err.message )
+      console.log(err.message);
       Alert.alert('Error', err.message || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -335,6 +344,7 @@ export const RiderDashboard = () => {
   };
 
   // ---------- Render ---------- //
+  console.log(selectedSession)
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header onPressHelp={() => navigation.navigate('explanation')} />
@@ -378,9 +388,7 @@ export const RiderDashboard = () => {
         session={selectedSession}
         onClose={() => setSelectedSession(null)}
         onBook={() => handleBookSession()}
-        isBooked={selectedSession?.ridersProfile?.some(
-          (r: any) => r.uid === uid,
-        )}
+        uid={uid}
       />
 
       <WaiverModal

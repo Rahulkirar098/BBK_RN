@@ -1,20 +1,16 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-} from "react-native";
-import { colors } from "../../theme/color";
-import { useNavigation } from "@react-navigation/native";
+import React from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { colors } from '../../theme/color';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type UserRole = "RIDER" | "OPERATOR";
+type UserRole = 'RIDER' | 'OPERATOR';
 
 const RoleSelectionScreen = () => {
   const navigation = useNavigation<any>();
 
-  const onSelect = (role: "RIDER" | "OPERATOR") => {
-    navigation.navigate("auth", { role });
+  const onSelect = async (role: 'RIDER' | 'OPERATOR') => {
+    navigation.navigate('auth', { role });
   };
 
   return (
@@ -31,11 +27,8 @@ const RoleSelectionScreen = () => {
       <View style={styles.cardContainer}>
         {/* Rider Card */}
         <Pressable
-          onPress={() => onSelect("RIDER")}
-          style={({ pressed }) => [
-            styles.card,
-            pressed && styles.cardPressed,
-          ]}
+          onPress={() => onSelect('RIDER')}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
         >
           <View style={styles.cardLeft}>
             <View style={[styles.iconBox, styles.riderIconBg]}>
@@ -57,11 +50,8 @@ const RoleSelectionScreen = () => {
 
         {/* Operator Card */}
         <Pressable
-          onPress={() => onSelect("OPERATOR")}
-          style={({ pressed }) => [
-            styles.card,
-            pressed && styles.cardPressed,
-          ]}
+          onPress={() => onSelect('OPERATOR')}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
         >
           <View style={styles.cardLeft}>
             <View style={[styles.iconBox, styles.operatorIconBg]}>
@@ -83,9 +73,7 @@ const RoleSelectionScreen = () => {
       </View>
 
       {/* Footer */}
-      <Text style={styles.footerText}>
-        BOOKBYSEAT DUBAI
-      </Text>
+      <Text style={styles.footerText}>BOOKBYSEAT DUBAI</Text>
     </View>
   );
 };
@@ -96,27 +84,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
   },
   header: {
     marginBottom: 32,
-    alignItems: "center",
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: '800',
+    color: '#111827',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
+    color: '#6B7280',
+    textAlign: 'center',
   },
   cardContainer: {
-    width: "100%",
+    width: '100%',
     maxWidth: 420,
     gap: 16,
   },
@@ -124,9 +112,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     padding: 24,
     borderRadius: 24,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -136,48 +124,48 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
   },
   cardLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 20,
   },
   iconBox: {
     width: 56,
     height: 56,
     borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   riderIconBg: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: '#EFF6FF',
   },
   operatorIconBg: {
-    backgroundColor: "#FFF7ED",
+    backgroundColor: '#FFF7ED',
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontWeight: '700',
+    color: '#111827',
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "500",
+    color: '#6B7280',
+    fontWeight: '500',
   },
   arrowBox: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   footerText: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 32,
     fontSize: 10,
-    color: "#9CA3AF",
-    fontWeight: "700",
+    color: '#9CA3AF',
+    fontWeight: '700',
     letterSpacing: 2,
   },
 });

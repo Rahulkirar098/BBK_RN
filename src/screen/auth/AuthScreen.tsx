@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,7 +23,9 @@ import {
   setDoc,
   serverTimestamp,
 } from '@react-native-firebase/firestore';
+
 import { colors } from '../../theme';
+import { apiCallMethod } from '../../api/apiCallMethod';
 
 /* ---------------- TYPES ---------------- */
 
@@ -54,11 +55,46 @@ const AuthScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /* ---------------- BACK HANDLER ---------------- */
+  /* ---------------- STRIPE ---------------- */
 
-  const handleBack = () => {
-    setError(null);
-    navigation.replace('role-selection');
+  const handleCreateStripeAccount = async (
+    operatorUid: string,
+    email: string,
+  ) => {
+    try {
+      let response = await apiCallMethod.createConnectAccount({
+        operatorUid,
+        email,
+      });
+
+      if (response.status === 200) {
+        const stripeAccountId = response?.data?.stripeAccountId;
+
+        // ✅ SAVE IN FIRESTORE
+        const app = getApp();
+        const firestore = getFirestore(app);
+
+        await setDoc(
+          doc(firestore, 'users', operatorUid),
+          {
+            stripeAccountId: stripeAccountId,
+            stripe: {
+              accountId: stripeAccountId,
+              onboardingComplete: false, // optional but recommended
+            },
+          },
+          { merge: true },
+        );
+
+        // ✅ NAVIGATE
+        navigation.replace('register', {
+          role: userRole.toLowerCase(),
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   };
 
   /* ---------------- GOOGLE SIGN-IN ---------------- */
@@ -81,16 +117,16 @@ const AuthScreen = () => {
 
       const credential = GoogleAuthProvider.credential(idToken);
       const result = await signInWithCredential(auth, credential);
-      const user = result.user;
+      const user: any = result.user;
 
       /* ---------------- FIRESTORE ---------------- */
 
       const userRef = doc(firestore, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
-      // Validate role
+      // ❗ ROLE VALIDATION
       if (userSnap.exists()) {
-        const existingRole = userSnap.data()?.role as UserRole;
+        const existingRole = userSnap.data()?.role;
 
         if (existingRole && existingRole !== userRole) {
           setError(
@@ -111,34 +147,56 @@ const AuthScreen = () => {
         role: userRole,
         provider: 'google',
         updatedAt: serverTimestamp(),
-        onBoardStatus: 'pending',
       });
 
-      await setDoc(
-        userRef,
-        {
+      // ✅ NEW USER
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
           ...baseUserData,
           createdAt: serverTimestamp(),
-        },
-        { merge: true },
-      );
+          userProfile: {
+            onBoardStatus: 'pending',
+          },
+        });
+      } else {
+        // ✅ EXISTING USER (DO NOT OVERRIDE onboarding)
+        await setDoc(userRef, baseUserData, { merge: true });
+      }
+
+      /* ---------------- GET FINAL STATUS ---------------- */
+
+      const updatedSnap = await getDoc(userRef);
+
+      let onBoardStatus = 'pending';
+
+      if (updatedSnap.exists()) {
+        const dbStatus = updatedSnap.data()?.userProfile?.onBoardStatus;
+
+        if (dbStatus === 'completed') {
+          onBoardStatus = 'completed';
+        }
+      }
 
       /* ---------------- LOCAL STORAGE ---------------- */
 
       await AsyncStorage.setItem('bbs_user', JSON.stringify(baseUserData));
-      await AsyncStorage.setItem('onBoardStatus', 'pending');
+      await AsyncStorage.setItem('onBoardStatus', onBoardStatus);
+
+      console.log('FINAL STATUS:', onBoardStatus);
 
       /* ---------------- REDIRECT ---------------- */
 
-      const isProfileCompleted =
-        userSnap.exists() && !!userSnap.data()?.userProfile;
-
-      if (isProfileCompleted) {
+      if (onBoardStatus === 'completed') {
         navigation.replace('bottom_tab');
       } else {
-        navigation.replace('register', {
-          role: userRole.toLowerCase(),
-        });
+        // still pending
+        if (userRole === 'OPERATOR') {
+          await handleCreateStripeAccount(user.uid, user.email);
+        } else {
+          navigation.replace('register', {
+            role: userRole.toLowerCase(),
+          });
+        }
       }
     } catch (err: any) {
       console.log(err);
@@ -148,38 +206,24 @@ const AuthScreen = () => {
     }
   };
 
-  /* ---------------- UI LABEL ---------------- */
+  /* ---------------- UI ---------------- */
 
   const roleLabel =
     userRole === 'RIDER'
       ? 'Rider'
       : userRole === 'OPERATOR'
-      ? 'Operator'
-      : 'Admin';
-
-  /* ---------------- UI ---------------- */
+        ? 'Operator'
+        : 'Admin';
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Sign in as {roleLabel}</Text>
-          <Text style={styles.subtitle}>
-            Continue with Google to access your {roleLabel.toLowerCase()}{' '}
-            dashboard.
-          </Text>
-        </View>
+        <Text style={styles.title}>Sign in as {roleLabel}</Text>
 
         {error && (
-          <>
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-
-            <Pressable style={styles.backBtn} onPress={handleBack}>
-              <Text style={styles.backText}>← Back to Role Selection</Text>
-            </Pressable>
-          </>
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
         )}
 
         <Pressable
@@ -190,12 +234,7 @@ const AuthScreen = () => {
           {loading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <>
-              <View style={styles.googleIcon}>
-                <Text style={styles.googleIconText}>G</Text>
-              </View>
-              <Text style={styles.googleText}>Continue with Google</Text>
-            </>
+            <Text style={styles.googleText}>Continue with Google</Text>
           )}
         </Pressable>
       </View>
@@ -223,20 +262,12 @@ const styles = StyleSheet.create({
     padding: 28,
     elevation: 6,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
   title: {
     fontSize: 22,
     fontWeight: '800',
     color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
+    marginBottom: 20,
   },
   errorBox: {
     backgroundColor: '#FEF2F2',
@@ -250,42 +281,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#DC2626',
   },
-  backBtn: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
   googleBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
     backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
   },
   disabledBtn: {
     opacity: 0.6,
-  },
-  googleIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  googleIconText: {
-    color: colors.primary,
-    fontWeight: '800',
   },
   googleText: {
     color: colors.white,

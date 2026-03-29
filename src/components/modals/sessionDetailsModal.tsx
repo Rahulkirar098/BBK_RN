@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -31,14 +31,14 @@ import {
 } from '../../theme';
 import { Button } from '../atoms';
 import { formatDuration, mapDirection } from '../../utils/common_logic';
-import { googleMapURL } from '../../config/key';
+import firestore from '@react-native-firebase/firestore';
 
 interface SessionDetailCardProps {
   visible: boolean;
   session: any;
   onClose: () => void;
   onBook: () => void;
-  isBooked: boolean;
+  uid: string;
 }
 
 export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
@@ -46,7 +46,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   session,
   onClose,
   onBook,
-  isBooked,
+  uid,
 }) => {
   if (!session) return null;
 
@@ -66,6 +66,33 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
         return <Sun size={16} color={colors.orange500} />;
     }
   };
+
+  const [bookings, setBookings] = useState<any>(false);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+
+  useEffect(() => {
+    if (!visible || !session?.id) return;
+
+    setLoadingBookings(true);
+
+    const unsubscribe = firestore()
+      .collection('slots')
+      .doc(session.id)
+      .collection('booking')
+      .onSnapshot(snapshot => {
+        const list = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        let isBooked = list?.some((r: any) => r.id === uid);
+
+        setBookings(isBooked);
+        setLoadingBookings(false);
+      });
+
+    return () => unsubscribe();
+  }, [session?.id]);
+
   return (
     <Modal
       visible={visible}
@@ -211,28 +238,28 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               )}
             </View>
 
-
-            {!isBooked && (
+            {!bookings && (
               <Text style={styles.footerNote}>
                 No charge until session is confirmed.
               </Text>
             )}
-            
-            {!isBooked && <Button label="Book Seat" onPress={onBook} />}
 
-            {isBooked && <TouchableOpacity
-              onPress={() =>
-                Linking.openURL(
-                  mapDirection(
-                    session?.location.latitude,
-                    session?.location.longitude,
-                  ),
-                )
-              }
-            >
-              <Text style={styles.link}>📍 Get direction</Text>
-            </TouchableOpacity>}
-            
+            {!bookings && <Button label="Book Seat" onPress={onBook} />}
+
+            {bookings && (
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL(
+                    mapDirection(
+                      session?.location.latitude,
+                      session?.location.longitude,
+                    ),
+                  )
+                }
+              >
+                <Text style={styles.link}>📍 Get direction</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       </View>

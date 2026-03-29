@@ -3,3 +3,11 @@ export const onBoarding = {
     createAccountLink:"/create-account-link",
     checkOnboardingStatus:"/check-onboarding-status"
 }
+
+export const paymentIntent = {
+    createPaymentIntent:"/create-payment-intent",
+}
+
+export const moneyTransaction = {
+    captureAll:"/capture-all",
+}

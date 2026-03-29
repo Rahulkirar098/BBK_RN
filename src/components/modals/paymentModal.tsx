@@ -24,6 +24,7 @@ import {
 
 import { CustomCheckbox } from '../atoms/checkbox';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { apiCallMethod } from '../../api/apiCallMethod';
 
 interface PaymentModalProps {
   session: any;
@@ -63,28 +64,26 @@ export const PaymentModal = ({
 
       const user = JSON.parse(storedUser);
 
-      const liveURL = 'https://bbk-be-1smn.vercel.app';
-
-      const response = await fetch(`${liveURL}/create-payment-intent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: session?.id,
-          operatorUid: session?.operator_id,
-          riderUid: user?.uid,
-        }),
+      const response = await apiCallMethod.createPaymentIntent({
+        sessionId: session?.id,
+        operatorUid: session?.operator_id,
+        riderUid: user?.uid,
+        operatorStripeAccountId: session?.stripeAccountId,
       });
 
-      const data = await response.json();
+      console.log(response, '===@@@');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create payment intent');
+      if (response.status == 200) {
+        let data = response.data;
+        onConfirm(session, data);
+      } else {
+        throw new Error(
+          response.data.error || 'Failed to create payment intent',
+        );
       }
-
-      onConfirm(session, data);
     } catch (err: any) {
-      console.error(err);
-      Alert.alert('Error', err.message || 'Something went wrong');
+      console.error(err?.response?.data?.error);
+      Alert.alert('Error', err?.response?.data?.error || 'Something went wrong');
     } finally {
       setLoading(false);
     }

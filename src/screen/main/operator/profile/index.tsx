@@ -21,7 +21,7 @@ import {
   deleteDoc,
 } from '@react-native-firebase/firestore';
 
-import { listenUserCollection } from "../../../../services";
+import { listenUserCollection } from '../../../../services';
 
 import {
   StatCard,
@@ -41,13 +41,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityManagerModal,
   BoatManagerModal,
-  CaptainManagerModal
+  CaptainManagerModal,
 } from '../../../../components/modals';
 
 import { getApp } from '@react-native-firebase/app';
 
 export const OperatorProfile = () => {
-
   const app = getApp();
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -69,26 +68,14 @@ export const OperatorProfile = () => {
 
   // FETCH PROFILE
   const fetchProfile = async () => {
-
     try {
-
       const snap = await getDoc(doc(db, 'users', uid));
 
       if (!snap.exists()) {
         setError('Profile not found');
         return;
       }
-
       const profile = snap.data()?.userProfile;
-
-      console.log(profile)
-
-      if (!snap.data()?.userProfile) {
-        navigation.replace("register", {
-          role: 'OPERATOR',
-        });
-        return;
-      }
 
       if (profile.userRole !== 'OPERATOR') {
         setError('Invalid operator profile');
@@ -107,27 +94,23 @@ export const OperatorProfile = () => {
       });
 
       setLoading(false);
-
     } catch (err) {
       setError('Failed to load profile');
       setLoading(false);
     }
-
   };
 
   // REALTIME FIRESTORE LISTENERS
   useEffect(() => {
-
     if (!uid) return;
 
     const unsubscribers = [
-      listenUserCollection("activities", uid, setActivities),
-      listenUserCollection("boats", uid, setBoats),
-      listenUserCollection("captains", uid, setCaptains),
+      listenUserCollection('activities', uid, setActivities),
+      listenUserCollection('boats', uid, setBoats),
+      listenUserCollection('captains', uid, setCaptains),
     ];
 
     return () => unsubscribers.forEach(unsub => unsub());
-
   }, [uid]);
 
   // LOAD PROFILE
@@ -139,80 +122,67 @@ export const OperatorProfile = () => {
 
   // DELETE ACTIVITY
   const handleActivityDelete = (id: string) => {
-
     Alert.alert(
-      "Delete Activity",
-      "Are you sure you want to delete this Activity?",
+      'Delete Activity',
+      'Are you sure you want to delete this Activity?',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, "activities", id));
+              await deleteDoc(doc(db, 'activities', id));
             } catch (error) {
-              console.log("Delete error:", error);
+              console.log('Delete error:', error);
             }
           },
         },
-      ]
+      ],
     );
-
   };
 
   // DELETE BOAT
   const handleBoatDelete = (id: string) => {
-
-    Alert.alert(
-      "Delete Boat",
-      "Are you sure you want to delete this boat?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, "boats", id));
-            } catch (error) {
-              console.log("Delete error:", error);
-            }
-          },
+    Alert.alert('Delete Boat', 'Are you sure you want to delete this boat?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, 'boats', id));
+          } catch (error) {
+            console.log('Delete error:', error);
+          }
         },
-      ]
-    );
-
+      },
+    ]);
   };
 
   // DELETE CAPTAIN
   const handleCaptainDelete = (id: string, name: string) => {
-
-    Alert.alert(
-      "Delete Captain",
-      `Delete ${name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, "captains", id));
-            } catch (error) {
-              console.log("Delete error:", error);
-            }
-          },
+    Alert.alert('Delete Captain', `Delete ${name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, 'captains', id));
+          } catch (error) {
+            console.log('Delete error:', error);
+          }
         },
-      ]
-    );
-
+      },
+    ]);
   };
 
   // LOGOUT
   const logout = async () => {
     await auth.signOut();
     await AsyncStorage.removeItem('bbs_user');
+    await AsyncStorage.removeItem('onBoardStatus');
     navigation.replace('role-selection');
   };
 
@@ -231,11 +201,8 @@ export const OperatorProfile = () => {
     );
 
   return (
-
     <SafeAreaView style={styles.safeArea}>
-
       <View style={styles.container}>
-
         <View style={styles.header}>
           <Text style={styles.title}>Business Hub</Text>
         </View>
@@ -253,7 +220,6 @@ export const OperatorProfile = () => {
         </TouchableOpacity>
 
         <View style={styles.row}>
-
           <StatCard
             icon={<Ship size={20} />}
             count={boats.length}
@@ -267,7 +233,6 @@ export const OperatorProfile = () => {
             label="Captains"
             onPress={() => setCaptionModal(true)}
           />
-
         </View>
 
         <OutlinedButton
@@ -276,7 +241,6 @@ export const OperatorProfile = () => {
           Icon={LogOut}
           color={colors.error}
         />
-
       </View>
 
       {activityModal && (
@@ -305,17 +269,13 @@ export const OperatorProfile = () => {
           handleDelete={handleCaptainDelete}
         />
       )}
-
     </SafeAreaView>
-
   );
-
 };
 
 export default OperatorProfile;
 
 const styles = StyleSheet.create({
-
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
@@ -343,9 +303,9 @@ const styles = StyleSheet.create({
   },
 
   activityBtn: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: horizontalScale(5),
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: colors.white,
     padding: horizontalScale(10),
     borderRadius: 10,
@@ -363,5 +323,4 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.orange500,
   },
-
 });

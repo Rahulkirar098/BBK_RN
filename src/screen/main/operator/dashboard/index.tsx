@@ -5,6 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import {
   Calendar,
@@ -13,12 +16,10 @@ import {
   DollarSign,
   BellRing,
   MapPin,
+  LucideMessageCircleWarning,
 } from 'lucide-react-native';
-import {
-  Stat,
-  Empty,
-} from '../../../../components/atoms';
-import { SessionCard } from '../../../../components/molicules';
+import { Stat, Empty } from '../../../../components/atoms';
+import { SessionCardOprator } from '../../../../components/molicules';
 
 import {
   colors,
@@ -39,6 +40,7 @@ import {
   query,
   where,
   updateDoc,
+  setDoc,
 } from '@react-native-firebase/firestore';
 
 import { ActiveStatus, SESSION_STATUS } from '../../../../type';
@@ -46,11 +48,15 @@ import { ActiveStatus, SESSION_STATUS } from '../../../../type';
 import {
   CreateSessionModal,
   SessionDetailModal,
+  StripeOnboardingModal,
 } from '../../../../components/modals';
 
 import { listenUserCollection } from '../../../../services';
 import OperatorDashboardHeader from './header';
 import DashboardCalendar from './calendar';
+
+//
+import { apiCallMethod } from '../../../../api/apiCallMethod';
 
 const OperatorDashboard: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -68,10 +74,7 @@ const OperatorDashboard: React.FC = () => {
   useEffect(() => {
     if (!uid) return;
 
-    const q = query(
-      collection(db, 'slots'),
-      where('operator_id', '==', uid)
-    );
+    const q = query(collection(db, 'slots'), where('operator_id', '==', uid));
 
     const unsubscribe = onSnapshot(q, snapshot => {
       const list = snapshot.docs.map((doc: any) => ({
@@ -95,20 +98,12 @@ const OperatorDashboard: React.FC = () => {
     const unsubActivities = listenUserCollection(
       'activities',
       uid,
-      setActivities
+      setActivities,
     );
 
-    const unsubBoats = listenUserCollection(
-      'boats',
-      uid,
-      setBoats
-    );
+    const unsubBoats = listenUserCollection('boats', uid, setBoats);
 
-    const unsubCaptains = listenUserCollection(
-      'captains',
-      uid,
-      setCaptains
-    );
+    const unsubCaptains = listenUserCollection('captains', uid, setCaptains);
 
     return () => {
       unsubActivities();
@@ -133,9 +128,9 @@ const OperatorDashboard: React.FC = () => {
       sessions.filter(
         s =>
           s.status === SESSION_STATUS.MIN_REACHED ||
-          s.status === SESSION_STATUS.FULL
+          s.status === SESSION_STATUS.FULL,
       ),
-    [sessions]
+    [sessions],
   );
 
   const scheduledSessions = useMemo(
@@ -151,7 +146,7 @@ const OperatorDashboard: React.FC = () => {
           d.toDateString() === selectedDate.toDateString()
         );
       }),
-    [sessions, selectedDate]
+    [sessions, selectedDate],
   );
 
   /* -------------------- WEEK DAYS -------------------- */
@@ -167,16 +162,13 @@ const OperatorDashboard: React.FC = () => {
     });
   };
 
-  const weekDays = useMemo(
-    () => getWeekDays(selectedDate),
-    [selectedDate]
-  );
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
 
   /* -------------------- STATS -------------------- */
 
   const totalRevenue = scheduledSessions.reduce(
     (acc, s) => acc + s.bookedSeats * s.pricePerSeat,
-    0
+    0,
   );
 
   const avgFillRate =
@@ -185,10 +177,10 @@ const OperatorDashboard: React.FC = () => {
       : Math.round(
           (scheduledSessions.reduce(
             (acc, s) => acc + s.bookedSeats / s.totalSeats,
-            0
+            0,
           ) /
             scheduledSessions.length) *
-            100
+            100,
         );
 
   /* -------------------- SESSION DETAILS -------------------- */
@@ -196,11 +188,68 @@ const OperatorDashboard: React.FC = () => {
   const [showSessionDetails, setShowSessionDetails] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>({});
 
+  /* -------------------- STRIPE -------------------- */
+  const [isStripeKYC, setIsStripeKYC] = useState(false);
+  const [stripeUrl, setStripeUrl] = useState('');
+  const [openWebView, setOpenWebView] = useState(false);
+
+  const handleOnBoard = async () => {
+    try {
+      let response = await apiCallMethod.checkOnboardingStatus(uid);
+      if (response?.status == 200) {
+        let onboardingComplete = response?.data?.onboardingComplete;
+        if (onboardingComplete == false) {
+          setIsStripeKYC(true);
+        }
+      }
+    } catch (error: any) {
+      Alert.alert(error?.response?.data?.error);
+    }
+  };
+
+  useEffect(() => {
+    handleOnBoard();
+  }, []);
+
+  const handleCreateAccountLink = async () => {
+    try {
+      let response = await apiCallMethod.createAccountLink({
+        operatorUid: uid,
+      });
+      if (response?.status == 200) {
+        let url = response?.data?.url;
+        setStripeUrl(url);
+        setOpenWebView(true);
+      }
+    } catch (error: any) {
+      console.log('error', error?.response);
+    }
+  };
+
+  const handleStripeSuccess = async () => {
+    const app = getApp();
+    const firestore = getFirestore(app);
+
+    await setDoc(
+      doc(firestore, 'users', uid),
+      {
+        stripe: {
+          onboardingComplete: true,
+        },
+      },
+      { merge: true },
+    );
+
+    // optional refresh
+    setIsStripeKYC(false); // ✅ THIS IS IMPORTANT
+    handleOnBoard();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={{ paddingHorizontal: horizontalScale(20) }}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: verticalScale(120) }}
       >
         <OperatorDashboardHeader
           title="Dashboard"
@@ -236,6 +285,49 @@ const OperatorDashboard: React.FC = () => {
           />
         </View>
 
+        {isStripeKYC && (
+          <View
+            style={{
+              marginBottom: verticalScale(10),
+              backgroundColor: colors.white,
+              padding: horizontalScale(15),
+              borderRadius: horizontalScale(15),
+              shadowColor: colors.black,
+              shadowOpacity: 0.05,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
+            <View>
+              <Text>
+                Please complete your kyc process to create new session
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginVertical: verticalScale(5),
+                }}
+              >
+                <LucideMessageCircleWarning size={20} color={'red'} />
+                <TouchableOpacity
+                  onPress={handleCreateAccountLink}
+                  style={{
+                    backgroundColor: colors.primary,
+                    paddingHorizontal: horizontalScale(10),
+                    paddingVertical: verticalScale(5),
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text style={{ color: colors.white }}>Click here</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
         {activeTab === 'SCHEDULE' && (
           <>
             <DashboardCalendar
@@ -255,21 +347,18 @@ const OperatorDashboard: React.FC = () => {
                 const confirmed =
                   session.bookedSeats >= session.minRidersToConfirm;
 
-                const fill =
-                  (session.bookedSeats / session.totalSeats) * 100;
+                const fill = (session.bookedSeats / session.totalSeats) * 100;
 
                 return (
-                  <SessionCard
+                  <SessionCardOprator
                     key={session.id}
                     title={session.title}
                     time={
                       session.timeStart
-                        ? session.timeStart
-                            .toDate()
-                            .toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
+                        ? session.timeStart.toDate().toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
                         : '--'
                     }
                     durationHours={session.durationMinutes}
@@ -279,6 +368,7 @@ const OperatorDashboard: React.FC = () => {
                     confirmed={confirmed}
                     fillPercent={fill}
                     onPress={() => {
+                      console.log(session)
                       setSelectedSession(session);
                       setShowSessionDetails(true);
                     }}
@@ -321,6 +411,7 @@ const OperatorDashboard: React.FC = () => {
         visible={showSessionDetails}
         onClose={() => setShowSessionDetails(false)}
         session={selectedSession}
+        setSession={setSelectedSession}
       />
 
       <CreateSessionModal
@@ -329,6 +420,12 @@ const OperatorDashboard: React.FC = () => {
         boats={boats}
         captains={captains}
         activities={activities}
+      />
+      <StripeOnboardingModal
+        visible={openWebView}
+        url={stripeUrl}
+        onClose={() => setOpenWebView(false)}
+        onSuccess={handleStripeSuccess}
       />
     </SafeAreaView>
   );
@@ -497,20 +594,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: '#eee',
   },
 
   detailKey: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#666",
-    textTransform: "capitalize",
+    fontWeight: '600',
+    color: '#666',
+    textTransform: 'capitalize',
   },
 
   detailValue: {
     fontSize: 14,
-    color: "#111",
+    color: '#111',
     marginTop: 4,
   },
-
 });

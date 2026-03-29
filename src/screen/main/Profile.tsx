@@ -11,7 +11,7 @@ const Profile = () => {
     const loadRole = async () => {
       try {
         const storedRole = await AsyncStorage.getItem('bbs_user');
-        setRole(JSON.parse(storedRole || '{}').role); // e.g. "rider" | "owner"
+        setRole(JSON.parse(storedRole || '{}').role);
       } catch (e) {
         console.log('Error reading role', e);
       } finally {

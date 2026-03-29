@@ -8,3 +8,4 @@ export * from './infoModal';
 export * from './boatModal';
 export * from './captionModal';
 export * from './activityModal';
+export * from './stripeOnboardingModal';

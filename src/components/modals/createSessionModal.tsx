@@ -34,6 +34,8 @@ import {
   addDoc,
   serverTimestamp,
   Timestamp,
+  getDoc,
+  doc,
 } from '@react-native-firebase/firestore';
 
 import storage from '@react-native-firebase/storage';
@@ -102,6 +104,10 @@ export const CreateSessionModal = ({
 
     const uid = auth.currentUser?.uid;
     if (!uid) return;
+
+    // Check if user is an operator
+    const snap = await getDoc(doc(db, 'users', uid));
+    const profile = snap.data();
 
     const error = validate();
     if (error) {
@@ -187,7 +193,6 @@ export const CreateSessionModal = ({
 
         // 📊 Status
         status: SESSION_STATUS.OPEN,
-        ridersProfile: [],
 
         // 🖼 Media
         imageUrl: imageUrl,
@@ -195,6 +200,9 @@ export const CreateSessionModal = ({
         // ⏱ Meta
         createdAt: serverTimestamp(),
         operator_id: uid,
+
+        paymentStatus: 'pending', // pending | captured | failed
+        stripeAccountId: profile?.stripeAccountId,
       };
 
       // ✅ Save

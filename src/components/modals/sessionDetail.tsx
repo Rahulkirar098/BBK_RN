@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -7,6 +7,8 @@ import {
   ScrollView,
   StyleSheet,
   Linking,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { X } from 'lucide-react-native';
 import FastImage from 'react-native-fast-image';
@@ -20,11 +22,13 @@ import {
   verticalScale,
 } from '../../theme';
 import { mapDirection } from '../../utils/common_logic';
+import { apiCallMethod } from '../../api/apiCallMethod';
 
 interface Props {
   visible: boolean;
   session: any;
   onClose: () => void;
+  setSession: (prev:any) => void;
 }
 
 const DetailRow = ({ label, value }: { label: string; value: any }) => {
@@ -52,12 +56,41 @@ const formatDate = (value: any) => {
   }
 };
 
+const Accordion = ({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <View style={styles.section}>
+      <TouchableOpacity
+        style={styles.accordionHeader}
+        onPress={() => setOpen(!open)}
+      >
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.accordionIcon}>{open ? '−' : '+'}</Text>
+      </TouchableOpacity>
+
+      {open && <View style={{ marginTop: 10 }}>{children}</View>}
+    </View>
+  );
+};
+
 export const SessionDetailModal: React.FC<Props> = ({
   visible,
   session,
   onClose,
+  setSession,
 }) => {
   if (!session) return null;
+
+  console.log(session, '===@@@');
 
   const {
     title,
@@ -65,20 +98,16 @@ export const SessionDetailModal: React.FC<Props> = ({
     pricePerSeat,
     activity,
     status,
-
     boat,
     captain,
-
     totalSeats,
-    minRiders,
+    minRidersToConfirm,
     bookedSeats,
-    ridersProfile,
-
     durationMinutes,
     timeStart,
-
     location,
     locationDetails,
+    paymentStatus,
   } = session;
 
   const fillPercent = totalSeats
@@ -90,11 +119,13 @@ export const SessionDetailModal: React.FC<Props> = ({
       ? mapDirection(location.latitude, location.longitude)
       : null;
 
-  const [bookings, setBookings] = React.useState<any[]>([]);
-  const [loadingBookings, setLoadingBookings] = React.useState(false);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   useEffect(() => {
     if (!visible || !session?.id) return;
+
+    setLoadingBookings(true);
 
     const unsubscribe = firestore()
       .collection('slots')
@@ -107,25 +138,58 @@ export const SessionDetailModal: React.FC<Props> = ({
         }));
 
         setBookings(list);
+        setLoadingBookings(false);
       });
 
     return () => unsubscribe();
   }, [visible, session?.id]);
 
+  //////////Claim
+  const [claimLoading, setClaimLoading] = useState(false);
+
+  const handleClaim = async () => {
+    try {
+      setClaimLoading(true);
+
+      const response = await apiCallMethod.captureAll({
+        sessionId: session?.id,
+      });
+      if (response.status == 200) {
+        if (response?.data?.success) {
+          Alert.alert('Success', 'Amount claimed successfully 💰');
+
+          // 🔥 Update local state
+          setSession((prev: any) => ({
+            ...prev,
+            paymentStatus: 'captured',
+          }));
+        } else {
+          throw new Error(response?.data?.message || 'Failed to claim');
+        }
+      }
+    } catch (error: any) {
+      console.log('error', error);
+
+      const message =
+        error?.response?.data?.message || // backend error
+        error?.message || // fallback
+        'Something went wrong';
+
+      Alert.alert('Error', message);
+    } finally {
+      setClaimLoading(false);
+    }
+  };
+
+  const canClaim =
+    paymentStatus === 'pending' && bookedSeats >= minRidersToConfirm;
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          {/* HERO IMAGE */}
+          {/* IMAGE */}
           <View style={styles.imageContainer}>
-            <FastImage
-              source={{
-                uri: imageUrl,
-                priority: FastImage.priority.high,
-              }}
-              style={styles.image}
-              resizeMode={FastImage.resizeMode.cover}
-            />
+            <FastImage source={{ uri: imageUrl }} style={styles.image} />
 
             <View style={styles.headerOverlay}>
               <Text style={styles.titleWhite}>{title}</Text>
@@ -136,7 +200,7 @@ export const SessionDetailModal: React.FC<Props> = ({
             </View>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView>
             {/* PRICE + LOCATION */}
             <View style={styles.section}>
               <Text style={styles.price}>AED {pricePerSeat}</Text>
@@ -154,10 +218,8 @@ export const SessionDetailModal: React.FC<Props> = ({
               )}
             </View>
 
-            {/* BASIC INFO */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Session Info</Text>
-
+            {/* SESSION INFO */}
+            <Accordion title="Session Info">
               <DetailRow label="Activity" value={activity} />
               <DetailRow label="Status" value={status} />
               <DetailRow label="Start Time" value={formatDate(timeStart)} />
@@ -165,63 +227,20 @@ export const SessionDetailModal: React.FC<Props> = ({
                 label="Duration"
                 value={`${durationMinutes || 0} mins`}
               />
-            </View>
+            </Accordion>
 
             {/* CAPACITY */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Capacity</Text>
-
+            <Accordion title="Capacity">
               <DetailRow label="Total Seats" value={totalSeats} />
               <DetailRow label="Booked Seats" value={bookedSeats} />
-              <DetailRow label="Min Riders" value={minRiders} />
+              <DetailRow label="Min Riders" value={minRidersToConfirm} />
               <DetailRow label="Fill Rate" value={`${fillPercent}%`} />
-            </View>
-
-            {/* RIDERS */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Riders</Text>
-
-              <DetailRow label="Total Riders" value={bookings.length} />
-
-              {loadingBookings ? (
-                <Text>Loading...</Text>
-              ) : bookings.length === 0 ? (
-                <Text>No riders yet</Text>
-              ) : (
-                bookings.map((r: any) => (
-                  <View key={r.id} style={styles.riderCard}>
-                    {/* 🔥 Rider Image + Info */}
-                    <View style={styles.riderRow}>
-                      <FastImage
-                        source={{
-                          uri: r.photoURL || 'https://via.placeholder.com/100',
-                        }}
-                        style={styles.avatar}
-                      />
-
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.riderName}>
-                          {r.displayName || r.name || 'Unknown'}
-                        </Text>
-
-                        {r.email && (
-                          <Text style={styles.riderSub}>{r.email}</Text>
-                        )}
-
-                        <Text style={styles.riderStatus}>{r.status}</Text>
-                      </View>
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
+            </Accordion>
 
             {/* BOAT */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Boat</Text>
-
+            <Accordion title="Boat">
               <DetailRow label="Name" value={boat?.boatName} />
-              <DetailRow label="Model" value={boat?.boatModel} />
+              <DetailRow label="Model Year" value={boat?.boatModel} />
               <DetailRow label="Company" value={boat?.boatCompany} />
               <DetailRow label="Capacity" value={boat?.boatCapacity} />
 
@@ -231,12 +250,10 @@ export const SessionDetailModal: React.FC<Props> = ({
                   style={styles.subImage}
                 />
               )}
-            </View>
+            </Accordion>
 
             {/* CAPTAIN */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Captain</Text>
-
+            <Accordion title="Captain">
               <DetailRow label="Name" value={captain?.name} />
               <DetailRow label="Phone" value={captain?.phone_no} />
               <DetailRow label="Language" value={captain?.language} />
@@ -248,17 +265,79 @@ export const SessionDetailModal: React.FC<Props> = ({
                   style={styles.subImage}
                 />
               )}
-            </View>
+            </Accordion>
 
             {/* META */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Meta</Text>
-
+            <Accordion title="Meta">
               <DetailRow label="Session ID" value={session?.id} />
               <DetailRow
                 label="Created At"
                 value={formatDate(session?.createdAt)}
               />
+            </Accordion>
+
+            {/* RIDERS */}
+            <Accordion title={`Riders (${bookings.length})`}>
+              {loadingBookings ? (
+                <Text>Loading...</Text>
+              ) : bookings.length === 0 ? (
+                <Text>No riders yet</Text>
+              ) : (
+                bookings.map((r: any) => {
+                  return (
+                    <View key={r.id} style={styles.riderCard}>
+                      <View style={styles.riderRow}>
+                        <FastImage
+                          source={{
+                            uri:
+                              r.photoURL || 'https://via.placeholder.com/100',
+                          }}
+                          style={styles.avatar}
+                        />
+
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.riderName}>
+                            {r.displayName || r.name || 'Unknown'}
+                          </Text>
+
+                          {r.email && (
+                            <Text style={styles.riderSub}>{r.email}</Text>
+                          )}
+
+                          <Text style={styles.riderStatus}>{r.status}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </Accordion>
+
+            <View>
+              {canClaim && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: claimLoading
+                      ? colors.gray400
+                      : colors.primary,
+                    paddingVertical: 16,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    margin: horizontalScale(10),
+                    opacity: claimLoading ? 0.7 : 1,
+                  }}
+                  onPress={handleClaim}
+                  disabled={claimLoading}
+                >
+                  {claimLoading ? (
+                    <ActivityIndicator color={colors.white} />
+                  ) : (
+                    <Text style={{ color: colors.white }}>
+                      Claim session amount
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -326,7 +405,18 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     ...typography.cardTitle,
-    marginBottom: verticalScale(6),
+  },
+
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  accordionIcon: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.primary,
   },
 
   price: {

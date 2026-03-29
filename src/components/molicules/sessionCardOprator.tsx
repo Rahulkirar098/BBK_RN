@@ -9,8 +9,6 @@ import {
 import {
   CheckCircle2,
   AlertCircle,
-  Edit2,
-  Copy,
 } from 'lucide-react-native';
 
 import { colors, horizontalScale, typography } from '../../theme';
@@ -25,12 +23,10 @@ interface SessionCardProps {
   pricePerSeat: number;
   confirmed: boolean;
   fillPercent: number;
-  onEdit?: () => void;
-  onCopy?: () => void;
   onPress?: () => void;
 }
 
-export const SessionCard: React.FC<SessionCardProps> = ({
+export const SessionCardOprator: React.FC<SessionCardProps> = ({
   title,
   time,
   durationHours,
@@ -39,8 +35,6 @@ export const SessionCard: React.FC<SessionCardProps> = ({
   pricePerSeat,
   confirmed,
   fillPercent,
-  onEdit,
-  onCopy,
   onPress
 }) => {
   return (
@@ -49,7 +43,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
         {/* HEADER */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title}>{title} </Text>
 
             <View style={styles.metaRow}>
               <Text style={styles.timeBadge}>{time}</Text>

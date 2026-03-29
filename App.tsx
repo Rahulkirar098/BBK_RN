@@ -21,7 +21,6 @@ function App() {
     <View style={{ flex: 1 }}>
       <StripeProvider
         publishableKey={stripKey}
-        // merchantIdentifier="merchant.com.bookbyseat" // iOS only (Apple Pay)
       >
         <Navigation />
       </StripeProvider>
