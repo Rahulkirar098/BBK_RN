@@ -1,13 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Alert, FlatList, Platform, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import { colors, horizontalScale, verticalScale } from '../../../../theme';
+import {
+  colors,
+  horizontalScale,
+  typography,
+  verticalScale,
+} from '../../../../theme';
 import { TimeFilter } from '../../../../type';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { Map } from 'lucide-react-native';
 
 // ---------- Components ----------
 import Header from './header';
@@ -64,12 +78,14 @@ export const RiderDashboard = () => {
   const [selectedTab, setSelectedTab] = useState<TimeFilter>('NOW');
 
   // ---------- State ---------- //
-  const [bookedDetailModal, setBookedDetailModal] = useState(false);
   const [sessionDetailModal, setSessionDetailModal] = useState(false);
   const [showWaiverModal, setShowWaiverModal] = useState(false);
   const [paymentModal, setPaymentModal] = useState(false);
 
   const [saveCardDetails, setSaveCardDetails] = useState(false);
+
+  // map
+  const [showMap, setShowMap] = useState(false);
 
   const toggleSaveCard = () => {
     setSaveCardDetails(prev => !prev);
@@ -348,6 +364,29 @@ export const RiderDashboard = () => {
     <SafeAreaView style={styles.safeArea}>
       <Header onPressHelp={() => navigation.navigate('explanation')} />
 
+      <TouchableOpacity
+        onPress={() => navigation.navigate('map')}
+        style={{
+          width: horizontalScale(100),
+          height: verticalScale(50),
+          borderRadius: verticalScale(10),
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.primary,
+          position: 'absolute',
+          bottom: 100,
+          alignSelf: 'center', // ✅ FIX
+          zIndex: 99,
+          flexDirection: 'row',
+          gap: horizontalScale(5),
+        }}
+      >
+        <Map size={20} color={colors.white} />
+        <Text style={{ ...typography.sectionTitle, color: colors.white }}>
+          Map
+        </Text>
+      </TouchableOpacity>
+
       <FlatList
         data={filteredSessions}
         keyExtractor={item => item.id}
@@ -367,7 +406,7 @@ export const RiderDashboard = () => {
               t={timeLabels}
             />
 
-            <RequestTripCard onPress={() => Alert.alert('Request a trip')} />
+            {/* <RequestTripCard onPress={() => Alert.alert('Request a trip is not available yet')} /> */}
           </View>
         }
         renderItem={({ item }) => (

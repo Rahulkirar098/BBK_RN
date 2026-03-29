@@ -38,6 +38,7 @@
     "react-native-image-resizer": "^1.4.5",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-maps": "^1.27.1",
+    "react-native-maps-super-cluster": "^1.6.0",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "^4.20.0",
     "react-native-svg": "^15.15.1",

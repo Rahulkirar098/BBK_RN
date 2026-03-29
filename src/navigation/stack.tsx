@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { authNavigation } from './routes';
 import { BottomNavigation } from './bottom';
+import { SessionMapScreen } from '../screen/main/rider/map';
 
 const NavigateStack = createNativeStackNavigator();
 export const StackNavigation = () => {
@@ -18,6 +19,10 @@ export const StackNavigation = () => {
                     name={route.name}
                     component={route.component} />
             ))}
+
+            <NavigateStack.Screen
+                name="map"
+                component={SessionMapScreen} />
 
             <NavigateStack.Screen
                 name="bottom_tab"

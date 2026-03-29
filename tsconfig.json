@@ -3,6 +3,7 @@
   "compilerOptions": {
     "types": ["jest"],
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/components/modals/activityModal.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "src/components/modals/activityModal.tsx", "src/types/**/*.d.ts"],
+
   "exclude": ["**/node_modules", "**/Pods"]
 }
