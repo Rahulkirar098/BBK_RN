@@ -41,17 +41,14 @@ import {
   onSnapshot,
   query,
   Timestamp,
-  doc,
-  updateDoc,
   collectionGroup,
 } from '@react-native-firebase/firestore';
 
 import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import { where } from '@react-native-firebase/firestore';
 
 import RNCalendarEvents from 'react-native-calendar-events';
-
-const db = getFirestore();
 
 // ---------- Stripe ---------- //
 import { useStripe } from '@stripe/stripe-react-native';
@@ -71,7 +68,7 @@ export const RiderDashboard = () => {
   const navigation = useNavigation<any>();
 
   // ---------- State ---------- //
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,9 +80,6 @@ export const RiderDashboard = () => {
   const [paymentModal, setPaymentModal] = useState(false);
 
   const [saveCardDetails, setSaveCardDetails] = useState(false);
-
-  // map
-  const [showMap, setShowMap] = useState(false);
 
   const toggleSaveCard = () => {
     setSaveCardDetails(prev => !prev);
@@ -102,8 +96,11 @@ export const RiderDashboard = () => {
   };
   // ---------- Firestore Listener ----------
   useEffect(() => {
-    const q = query(collectionGroup(db, 'slots'));
-
+    const q = query(
+      collectionGroup(db, 'slots'),
+      // where('status', '==', 'open'),
+      // where('paymentStatus', '==', 'pending'),
+    );
     const unsubscribe = onSnapshot(
       q,
       snapshot => {
@@ -128,9 +125,11 @@ export const RiderDashboard = () => {
         });
 
         setSessions(data);
+        setLoading(false);
       },
       error => {
         console.error('Firestore error:', error);
+        setLoading(false);
       },
     );
 
@@ -138,43 +137,52 @@ export const RiderDashboard = () => {
   }, []);
 
   // ---------- Filtered Sessions ---------- //
-  const filteredSessions = useMemo(() => {
-    if (!sessions?.length) return [];
+ const filteredSessions = useMemo(() => {
+  if (!sessions?.length) return [];
 
-    const now = new Date();
+  const now = new Date();
 
-    return sessions.filter(session => {
-      const sessionDate = new Date(session.timeStart);
+  const sorted = [...sessions].sort(
+    (a, b) => new Date(a.timeStart).getTime() - new Date(b.timeStart).getTime()
+  );
 
-      // Time filter
-      if (selectedTab === 'NOW') {
-        return sessionDate >= now;
-      }
+  return sorted.filter(session => {
+    const sessionDate = new Date(session.timeStart);
 
-      if (selectedTab === 'TOMORROW') {
-        const tomorrow = new Date();
-        tomorrow.setDate(now.getDate() + 1);
+    const matchesSearch =
+      session.title?.toLowerCase?.().includes(searchQuery.toLowerCase()) ||
+      session.locationDetails?.name
+        ?.toLowerCase?.()
+        .includes(searchQuery.toLowerCase());
 
-        return (
-          sessionDate.getDate() === tomorrow.getDate() &&
-          sessionDate.getMonth() === tomorrow.getMonth() &&
-          sessionDate.getFullYear() === tomorrow.getFullYear()
-        );
-      }
+    if (!matchesSearch) return false;
 
-      if (selectedTab === 'THIS_WEEK') {
-        const startOfWeek = new Date(now);
-        const endOfWeek = new Date(now);
+    if (selectedTab === 'NOW') return sessionDate >= now;
 
-        startOfWeek.setHours(0, 0, 0, 0);
-        endOfWeek.setDate(now.getDate() + 7);
+    if (selectedTab === 'TOMORROW') {
+      const tomorrow = new Date();
+      tomorrow.setDate(now.getDate() + 1);
 
-        return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
-      }
+      return (
+        sessionDate.getDate() === tomorrow.getDate() &&
+        sessionDate.getMonth() === tomorrow.getMonth() &&
+        sessionDate.getFullYear() === tomorrow.getFullYear()
+      );
+    }
 
-      return true;
-    });
-  }, [sessions, selectedTab]);
+    if (selectedTab === 'THIS_WEEK') {
+      const startOfWeek = new Date(now);
+      const endOfWeek = new Date(now);
+
+      startOfWeek.setHours(0, 0, 0, 0);
+      endOfWeek.setDate(now.getDate() + 7);
+
+      return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+    }
+
+    return true;
+  });
+}, [sessions, selectedTab, searchQuery]);
 
   // ---------- Digital Signature ---------- //
   const [signature, setSignature] = useState('');
@@ -358,6 +366,18 @@ export const RiderDashboard = () => {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        >
+          <Text>Loading sessions...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // ---------- Render ---------- //
   return (

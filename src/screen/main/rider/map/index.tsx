@@ -14,21 +14,15 @@ import { googleApiKey } from '../../../../config';
 import { colors, horizontalScale, verticalScale } from '../../../../theme';
 import { useNavigation } from '@react-navigation/native';
 
-// ---------- Firestore ---------- //
+// Firebase
 import {
   getFirestore,
   onSnapshot,
   query,
   Timestamp,
-  doc,
-  updateDoc,
   collectionGroup,
 } from '@react-native-firebase/firestore';
-
 import { getAuth } from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-
-import RNCalendarEvents from 'react-native-calendar-events';
 import { getApp } from '@react-native-firebase/app';
 
 const DUBAI_REGION = {
@@ -41,16 +35,13 @@ const DUBAI_REGION = {
 const { width } = Dimensions.get('window');
 
 const HORIZONTAL_PADDING = 20;
-
-const CARD_WIDTH = width - HORIZONTAL_PADDING * 2; // ✅ full width
+const CARD_WIDTH = width - HORIZONTAL_PADDING * 2;
 const SPACING = 10;
 
 export const SessionMapScreen = () => {
-  // Firebase //
   const app = getApp();
   const auth = getAuth(app);
   const db = getFirestore(app);
-  const uid: any = auth.currentUser?.uid;
 
   const navigation = useNavigation();
 
@@ -58,7 +49,6 @@ export const SessionMapScreen = () => {
   const flatListRef = useRef<any>(null);
 
   const [sessions, setSessions] = useState<any[]>([]);
-
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filteredSessions, setFilteredSessions] = useState<any[]>([]);
   const [searchLocation, setSearchLocation] = useState<any>(null);
@@ -80,10 +70,10 @@ export const SessionMapScreen = () => {
         Math.cos((lat2 * Math.PI) / 180) *
         Math.sin(dLon / 2) ** 2;
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   };
 
+  // 🔁 Scroll → map
   const handleScroll = (event: any) => {
     const index = Math.round(
       event.nativeEvent.contentOffset.x / (CARD_WIDTH + SPACING),
@@ -102,15 +92,18 @@ export const SessionMapScreen = () => {
     });
   };
 
-  const handleMarkerPress = (index: any) => {
+  // 📍 Marker → card
+  const handleMarkerPress = (index: number) => {
     flatListRef.current?.scrollToIndex({ index, animated: true });
   };
 
+  // ❌ Clear search
   const handleClearSearch = () => {
     setFilteredSessions([]);
     setSearchLocation(null);
   };
 
+  // 🔍 Search + filter
   const handleSearch = (details: any) => {
     const location = details?.geometry?.location;
     if (!location) return;
@@ -129,7 +122,9 @@ export const SessionMapScreen = () => {
     });
 
     const filtered = sessions.filter((item: any) => {
-      if (!item?.location?.latitude) return false;
+      if (!item?.location?.latitude || !item?.location?.longitude) {
+        return false;
+      }
 
       const distance = getDistanceInKm(
         lat,
@@ -144,9 +139,9 @@ export const SessionMapScreen = () => {
     setFilteredSessions(filtered);
     setSelectedIndex(0);
 
-    // 🔥 Fit map
+    // 📍 Fit markers
     if (filtered.length > 0) {
-      const coords = filtered.map(item => ({
+      const coords = filtered.map((item: any) => ({
         latitude: item.location.latitude,
         longitude: item.location.longitude,
       }));
@@ -158,49 +153,40 @@ export const SessionMapScreen = () => {
     }
   };
 
-  // ---------- Firestore Listener ----------
+  // 🔥 Firestore
   useEffect(() => {
     const q = query(collectionGroup(db, 'slots'));
 
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const data = snapshot.docs.map((docSnap: any) => {
-          const docData = docSnap.data();
+    const unsubscribe = onSnapshot(q, snapshot => {
+      const data = snapshot.docs.map((docSnap: any) => {
+        const docData = docSnap.data();
 
-          let timeStart: Date;
+        let timeStart: Date;
 
-          if (docData.timeStart instanceof Timestamp) {
-            timeStart = docData.timeStart.toDate();
-          } else if (typeof docData.timeStart === 'string') {
-            timeStart = new Date(docData.timeStart);
-          } else {
-            timeStart = new Date();
-          }
+        if (docData.timeStart instanceof Timestamp) {
+          timeStart = docData.timeStart.toDate();
+        } else {
+          timeStart = new Date(docData.timeStart);
+        }
 
-          return {
-            id: docSnap.id,
-            ...docData,
-            timeStart,
-          };
-        });
+        return {
+          id: docSnap.id,
+          ...docData,
+          timeStart,
+        };
+      });
 
-        setSessions(data);
-      },
-      error => {
-        console.error('Firestore error:', error);
-      },
-    );
+      setSessions(data);
+    });
 
     return unsubscribe;
   }, []);
 
   return (
-    <View style={styles.safeArea}>
+    <View style={{ flex: 1 }}>
       {/* 🔍 Search */}
       <View style={styles.searchContainer}>
         <View style={styles.searchRow}>
-          {/* 🔙 Back Button */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -208,30 +194,34 @@ export const SessionMapScreen = () => {
             <X size={20} color="white" />
           </TouchableOpacity>
 
-          {/* 🔍 Search */}
           <View style={{ flex: 1 }}>
             <GooglePlacesAutocomplete
               placeholder="Search area..."
               fetchDetails
               onPress={(data, details) => handleSearch(details)}
-              onFail={handleClearSearch}
-              query={{
-                key: googleApiKey,
-                language: 'en',
-              }}
-              styles={{
-                textInput: styles.searchInput,
-              }}
+              onNotFound={handleClearSearch}
+              query={{ key: googleApiKey, language: 'en' }}
+              styles={{ textInput: styles.searchInput }}
               textInputProps={{
                 placeholderTextColor: colors.black,
+                onChangeText: text => {
+                  if (!text) handleClearSearch();
+                },
               }}
             />
           </View>
         </View>
       </View>
 
-      <MapView ref={mapRef} style={{ flex: 1 }} initialRegion={DUBAI_REGION}>
+      {/* 🗺️ Map */}
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFillObject}
+        initialRegion={DUBAI_REGION}
+      >
         {currentData.map((item: any, index: any) => {
+          if (!item?.location?.latitude) return null;
+
           const isSelected = index === selectedIndex;
 
           return (
@@ -262,41 +252,31 @@ export const SessionMapScreen = () => {
             fillColor="rgba(0,0,255,0.2)"
           />
         )}
-
-        {searchLocation && currentData.length === 0 && (
-          <View
-            style={{
-              position: 'absolute',
-              top: '50%',
-              alignSelf: 'center',
-              backgroundColor: 'black',
-              padding: 10,
-              borderRadius: 10,
-            }}
-          >
-            <Text style={{ color: 'white' }}>
-              No sessions found in this area
-            </Text>
-          </View>
-        )}
       </MapView>
 
+      {/* ❗ No Results */}
+      {searchLocation && currentData.length === 0 && (
+        <View style={styles.noResult}>
+          <Text style={{ color: 'white' }}>No sessions found in this area</Text>
+        </View>
+      )}
+
+      {/* 📦 Cards */}
       <FlatList
         ref={flatListRef}
         data={currentData}
         keyExtractor={item => item.id}
         horizontal
-        pagingEnabled // ✅ ensures one card per swipe
+        pagingEnabled
         snapToInterval={CARD_WIDTH + SPACING}
         decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
         style={styles.flatList}
         contentContainerStyle={{
           paddingHorizontal: HORIZONTAL_PADDING,
-          paddingRight: HORIZONTAL_PADDING, // ✅ fix last card cut
+          paddingRight: HORIZONTAL_PADDING,
         }}
         onScroll={handleScroll}
-        scrollEventThrottle={16}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.title}>{item.title}</Text>
@@ -308,12 +288,7 @@ export const SessionMapScreen = () => {
 
             <Text>📍 {item.locationDetails?.name}</Text>
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => {
-                console.log('Book slot', item);
-              }}
-            >
+            <TouchableOpacity style={styles.button}>
               <Text style={{ color: 'white', fontWeight: 'bold' }}>
                 Book Slot
               </Text>
@@ -415,6 +390,14 @@ const styles = StyleSheet.create({
   markerText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  noResult: {
+    position: 'absolute',
+    top: '50%',
+    alignSelf: 'center',
+    backgroundColor: 'black',
+    padding: 10,
+    borderRadius: 10,
   },
 
   resultBox: {
