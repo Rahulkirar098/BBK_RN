@@ -7,3 +7,5 @@ export const googleSignin =
 export const googleMapURL = 'https://www.google.com/maps/dir/?api=1&destination=';
 
 export const appleMapURL = 'http://maps.apple.com/?daddr=';
+
+export const googleApiKey = 'AIzaSyCZ_Bqreka0SYy151W4udjWKQHOs93K66c';

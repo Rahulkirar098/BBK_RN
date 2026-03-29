@@ -42,6 +42,19 @@ import storage from '@react-native-firebase/storage';
 
 import { pickImageFromGallery } from '../../utils/common_logic';
 import { SESSION_STATUS } from '../../type';
+import { googleApiKey } from '../../config';
+
+const getPlaceImage = (locationDetails: any) => {
+  try {
+    const photoRef = locationDetails?.photos?.[0]?.photo_reference;
+
+    if (!photoRef) return '';
+
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key= ${googleApiKey}`;
+  } catch {
+    return '';
+  }
+};
 
 export const CreateSessionModal = ({
   visible,
@@ -122,6 +135,8 @@ export const CreateSessionModal = ({
       const start = new Date(form.date);
       start.setHours(form.time.getHours(), form.time.getMinutes(), 0, 0);
 
+      const locationImage = getPlaceImage(form.locationDetails);
+
       // ✅ Validate date
       if (isNaN(start.getTime())) {
         throw new Error('Invalid date');
@@ -161,6 +176,7 @@ export const CreateSessionModal = ({
           formatted_address: form.locationDetails?.formatted_address || '',
           vicinity: form.locationDetails?.vicinity || '',
           place_id: form.locationDetails?.place_id || '',
+          image: locationImage || '', // ✅ ADD THIS
         },
 
         // 💰 Pricing
@@ -250,7 +266,6 @@ export const CreateSessionModal = ({
   }));
 
   const revenue = form.minRiders * form.pricePerSeat || 0;
-
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>

@@ -344,7 +344,6 @@ export const RiderDashboard = () => {
   };
 
   // ---------- Render ---------- //
-  console.log(selectedSession)
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header onPressHelp={() => navigation.navigate('explanation')} />
@@ -388,7 +387,6 @@ export const RiderDashboard = () => {
         session={selectedSession}
         onClose={() => setSelectedSession(null)}
         onBook={() => handleBookSession()}
-        uid={uid}
       />
 
       <WaiverModal

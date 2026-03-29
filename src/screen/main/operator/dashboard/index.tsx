@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator,
-  Modal,
 } from 'react-native';
 import {
   Calendar,
@@ -141,8 +139,6 @@ const OperatorDashboard: React.FC = () => {
         const d = s.timeStart.toDate();
 
         return (
-          s.status !== SESSION_STATUS.CLAIMED &&
-          s.status !== SESSION_STATUS.CANCELLED &&
           d.toDateString() === selectedDate.toDateString()
         );
       }),

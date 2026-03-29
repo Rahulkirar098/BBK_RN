@@ -28,7 +28,7 @@ interface Props {
   visible: boolean;
   session: any;
   onClose: () => void;
-  setSession: (prev:any) => void;
+  setSession: (prev: any) => void;
 }
 
 const DetailRow = ({ label, value }: { label: string; value: any }) => {
@@ -89,8 +89,6 @@ export const SessionDetailModal: React.FC<Props> = ({
   setSession,
 }) => {
   if (!session) return null;
-
-  console.log(session, '===@@@');
 
   const {
     title,
@@ -162,7 +160,14 @@ export const SessionDetailModal: React.FC<Props> = ({
           setSession((prev: any) => ({
             ...prev,
             paymentStatus: 'captured',
+            status: 'claimed', // ✅ ADD THIS
           }));
+
+          await firestore().collection('slots').doc(session.id).update({
+            paymentStatus: 'captured',
+            status: 'claimed',
+            claimedAt: firestore.Timestamp.now(),
+          });
         } else {
           throw new Error(response?.data?.message || 'Failed to claim');
         }
@@ -182,11 +187,13 @@ export const SessionDetailModal: React.FC<Props> = ({
   };
 
   const canClaim =
-    paymentStatus === 'pending' && bookedSeats >= minRidersToConfirm;
+    paymentStatus === 'pending' &&
+    (status === 'min_reached' || status === 'full');
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View style={[styles.modal]}>
           {/* IMAGE */}
           <View style={styles.imageContainer}>
             <FastImage source={{ uri: imageUrl }} style={styles.image} />
@@ -198,24 +205,52 @@ export const SessionDetailModal: React.FC<Props> = ({
                 <X size={18} color={colors.white} />
               </TouchableOpacity>
             </View>
+
+            {paymentStatus === 'captured' && status === 'claimed' && (
+              <View style={styles.claimedBadge}>
+                <Text style={styles.claimedText}>
+                  Claimed & Amount Captured
+                </Text>
+              </View>
+            )}
           </View>
 
           <ScrollView>
             {/* PRICE + LOCATION */}
-            <View style={styles.section}>
+            <View style={[styles.section, { gap: horizontalScale(10) }]}>
               <Text style={styles.price}>AED {pricePerSeat}</Text>
 
-              <Text style={styles.sub}>
-                {locationDetails?.formatted_address ||
-                  locationDetails?.name ||
-                  'No location'}
-              </Text>
-
+              {/* MAP LINK */}
               {mapLink && (
                 <TouchableOpacity onPress={() => Linking.openURL(mapLink)}>
                   <Text style={styles.link}>Open in Google Maps</Text>
                 </TouchableOpacity>
               )}
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: horizontalScale(10),
+                }}
+              >
+                {/* ✅ LOCATION IMAGE */}
+                {locationDetails?.image ? (
+                  <FastImage
+                    source={{ uri: locationDetails?.image }}
+                    style={styles.locationImage}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                ) : null}
+
+                <View style={{ width: horizontalScale(300) }}>
+                  <Text style={styles.sub}>
+                    {locationDetails?.formatted_address ||
+                      locationDetails?.name ||
+                      'No location'}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {/* SESSION INFO */}
@@ -313,32 +348,30 @@ export const SessionDetailModal: React.FC<Props> = ({
               )}
             </Accordion>
 
-            <View>
-              {canClaim && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: claimLoading
-                      ? colors.gray400
-                      : colors.primary,
-                    paddingVertical: 16,
-                    borderRadius: 14,
-                    alignItems: 'center',
-                    margin: horizontalScale(10),
-                    opacity: claimLoading ? 0.7 : 1,
-                  }}
-                  onPress={handleClaim}
-                  disabled={claimLoading}
-                >
-                  {claimLoading ? (
-                    <ActivityIndicator color={colors.white} />
-                  ) : (
-                    <Text style={{ color: colors.white }}>
-                      Claim session amount
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
+            {canClaim && (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: claimLoading
+                    ? colors.gray400
+                    : colors.primary,
+                  paddingVertical: 16,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  margin: horizontalScale(10),
+                  opacity: claimLoading ? 0.7 : 1,
+                }}
+                onPress={handleClaim}
+                disabled={claimLoading}
+              >
+                {claimLoading ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={{ color: colors.white }}>
+                    Claim session amount
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -378,6 +411,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+
+  claimedBadge: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    backgroundColor: colors.successLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+
+  claimedText: {
+    color: colors.success,
+    ...typography.cardTitle,
   },
 
   closeBtn: {
@@ -427,11 +475,18 @@ const styles = StyleSheet.create({
   sub: {
     ...typography.small,
     color: colors.textSecondary,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+
+  locationImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
   },
 
   link: {
     color: colors.primary,
-    marginTop: 6,
     fontWeight: '600',
   },
 

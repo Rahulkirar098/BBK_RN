@@ -10,6 +10,7 @@ import {
 import MapView, { Marker, LatLng, Region, PROVIDER_GOOGLE } from "react-native-maps";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { colors, horizontalScale, platform, verticalScale } from "../../theme";
+import { googleApiKey } from "../../config";
 
 type Props = {
     visible: boolean;
@@ -90,7 +91,7 @@ export default function LocationPickerModal({
                             setGooglePlace(details)
                         }}
                         query={{
-                            key: "AIzaSyCZ_Bqreka0SYy151W4udjWKQHOs93K66c",
+                            key: googleApiKey,
                             language: "en",
                         }}
                         styles={{

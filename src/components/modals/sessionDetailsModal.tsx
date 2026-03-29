@@ -14,8 +14,7 @@ import {
   ShieldCheck,
   Sun,
   Cloud,
-  Wind,
-  AlertTriangle,
+  Moon,
   X,
   Star,
   Languages,
@@ -31,6 +30,8 @@ import {
 } from '../../theme';
 import { Button } from '../atoms';
 import { formatDuration, mapDirection } from '../../utils/common_logic';
+
+import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
 interface SessionDetailCardProps {
@@ -38,7 +39,6 @@ interface SessionDetailCardProps {
   session: any;
   onClose: () => void;
   onBook: () => void;
-  uid: string;
 }
 
 export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
@@ -46,34 +46,37 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   session,
   onClose,
   onBook,
-  uid,
 }) => {
   if (!session) return null;
 
   const progressPercent = (session.bookedSeats / session.totalSeats) * 100;
 
-  const getWeatherIcon = (weather: string) => {
-    switch (weather) {
-      case 'Sunny':
-        return <Sun size={16} color={colors.orange500} />;
-      case 'Cloudy':
-        return <Cloud size={16} color={colors.gray400} />;
-      case 'Windy':
-        return <Wind size={16} color={colors.primary} />;
-      case 'Risky':
-        return <AlertTriangle size={16} color={colors.orange500} />;
-      default:
-        return <Sun size={16} color={colors.orange500} />;
-    }
+  const getTimeOfDayInfo = (timeStart: string | Date) => {
+    const date = new Date(timeStart);
+    const hour = date.getHours();
+
+    if (hour >= 5 && hour < 12)
+      return { label: 'Morning', color: colors.orange500, Icon: Sun };
+    if (hour >= 12 && hour < 17)
+      return { label: 'Afternoon', color: colors.primary, Icon: Clock };
+    if (hour >= 17 && hour < 20)
+      return { label: 'Evening', color: colors.gray400, Icon: Cloud };
+    return { label: 'Night', color: colors.black, Icon: Moon }; // You can import Moon from lucide
   };
 
-  const [bookings, setBookings] = useState<any>(false);
-  const [loadingBookings, setLoadingBookings] = useState(false);
+  const {
+    label: timeLabel,
+    color: timeColor,
+    Icon: TimeIcon,
+  } = getTimeOfDayInfo(session.timeStart);
+
+  const [isBooked, setIsBooked] = useState(false);
 
   useEffect(() => {
     if (!visible || !session?.id) return;
 
-    setLoadingBookings(true);
+    const uid = auth().currentUser?.uid;
+    if (!uid) return;
 
     const unsubscribe = firestore()
       .collection('slots')
@@ -84,14 +87,23 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
           id: doc.id,
           ...doc.data(),
         }));
-        let isBooked = list?.some((r: any) => r.id === uid);
+        const alreadyBooked = list.some((r: any) => r.id === uid);
 
-        setBookings(isBooked);
-        setLoadingBookings(false);
+        setIsBooked(alreadyBooked);
       });
 
     return () => unsubscribe();
-  }, [session?.id]);
+  }, [visible, session?.id]);
+
+  const isPast = new Date(session.timeStart).getTime() < Date.now();
+
+  // ✅ Determine booking & direction logic
+  const canBook =
+    (session.status === 'open' || session.status === 'min_reached') &&
+    !isBooked &&
+    !isPast; // ❌ Prevent booking if session is past
+
+  console.log(session, '==@@@ ###');
 
   return (
     <Modal
@@ -118,9 +130,11 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               resizeMode={FastImage.resizeMode.cover}
             />
 
-            <View style={styles.weatherBadge}>
-              {getWeatherIcon(session.weather)}
-              <Text style={styles.weatherText}>{session.weather}</Text>
+            <View style={[styles.weatherBadge, { backgroundColor: 'white' }]}>
+              <TimeIcon size={16} color={timeColor} />
+              <Text style={{ ...styles.weatherText, color: timeColor }}>
+                {timeLabel}
+              </Text>
             </View>
           </View>
 
@@ -137,7 +151,6 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 {session.currency} {session.pricePerSeat}
               </Text>
             </View>
-
             {/* Time */}
             <View
               style={{
@@ -166,7 +179,6 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 />
               </View>
             </View>
-
             {/* TIME + LOCATION */}
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
@@ -176,7 +188,6 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 </Text>
               </View>
             </View>
-
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
                 <Calendar size={16} color={colors.primary} />
@@ -199,7 +210,6 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 </Text>
               </View>
             </View>
-
             {/* CAPTAIN */}
             <View style={styles.captainCard}>
               <FastImage
@@ -238,15 +248,23 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               )}
             </View>
 
-            {!bookings && (
+            {canBook && (
+              <>
+                <Text style={styles.footerNote}>
+                  No charge until session is confirmed.
+                </Text>
+                <Button label="Book Seat" onPress={onBook} />
+              </>
+            )}
+
+            {!canBook && isPast && (
               <Text style={styles.footerNote}>
-                No charge until session is confirmed.
+                ⏰ Session has already started or passed.
               </Text>
             )}
 
-            {!bookings && <Button label="Book Seat" onPress={onBook} />}
-
-            {bookings && (
+            {/* Show direction ONLY if user already booked */}
+            {isBooked && (
               <TouchableOpacity
                 onPress={() =>
                   Linking.openURL(
@@ -300,7 +318,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 20,
-    backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
@@ -310,7 +327,6 @@ const styles = StyleSheet.create({
   },
   weatherText: {
     ...typography.boldSmall,
-    color: colors.textPrimary,
   },
   content: {
     padding: horizontalScale(20),
