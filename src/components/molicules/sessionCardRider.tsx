@@ -71,7 +71,7 @@ export const SessionCardRider = ({ session, uid, onPress }: Props) => {
         <View style={styles.ratingBadge}>
           <Star size={12} color={colors.primary} />
           <Text style={styles.ratingText}>
-            {session?.captain?.rating || 'New'}
+            {'New'}
           </Text>
         </View>
 

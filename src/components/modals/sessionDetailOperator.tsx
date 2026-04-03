@@ -21,8 +21,9 @@ import {
   typography,
   verticalScale,
 } from '../../theme';
-import { mapDirection } from '../../utils/common_logic';
+import { formatDate, mapDirection } from '../../utils/common_logic';
 import { apiCallMethod } from '../../api/apiCallMethod';
+import { Accordion } from '../atoms';
 
 interface Props {
   visible: boolean;
@@ -38,46 +39,6 @@ const DetailRow = ({ label, value }: { label: string; value: any }) => {
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value}>{String(value)}</Text>
-    </View>
-  );
-};
-
-const formatDate = (value: any) => {
-  try {
-    if (!value) return '';
-
-    if (value?.toDate) {
-      return value.toDate().toLocaleString();
-    }
-
-    return new Date(value).toLocaleString();
-  } catch {
-    return 'Invalid date';
-  }
-};
-
-const Accordion = ({
-  title,
-  children,
-  defaultOpen = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) => {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <View style={styles.section}>
-      <TouchableOpacity
-        style={styles.accordionHeader}
-        onPress={() => setOpen(!open)}
-      >
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.accordionIcon}>{open ? '−' : '+'}</Text>
-      </TouchableOpacity>
-
-      {open && <View style={{ marginTop: 10 }}>{children}</View>}
     </View>
   );
 };
@@ -251,13 +212,18 @@ export const SessionDetailModal: React.FC<Props> = ({
                   </Text>
                 </View>
               </View>
+
+              <View style={{ width: horizontalScale(300) }}>
+                <Text style={styles.sub}>
+                  {formatDate(timeStart, 'full')}
+                </Text>
+              </View>
             </View>
 
             {/* SESSION INFO */}
             <Accordion title="Session Info">
               <DetailRow label="Activity" value={activity} />
-              <DetailRow label="Status" value={status} />
-              <DetailRow label="Start Time" value={formatDate(timeStart)} />
+              <DetailRow label="Slot Status" value={status} />
               <DetailRow
                 label="Duration"
                 value={`${durationMinutes || 0} mins`}
