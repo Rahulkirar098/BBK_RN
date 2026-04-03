@@ -11,8 +11,6 @@ import {
   TextInput,
 } from 'react-native';
 
-import DateTimePicker from '@react-native-community/datetimepicker';
-
 import DatePicker from 'react-native-date-picker';
 
 import { MapPin, GalleryHorizontal } from 'lucide-react-native';
@@ -73,6 +71,23 @@ export const CreateSessionModal = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
+  const getUserData = async () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return null;
+
+    const docSnap = await getDoc(doc(db, 'users', uid));
+
+    if (!docSnap.exists()) {
+      console.log('❌ No user doc');
+      return null;
+    }
+
+    const data = docSnap.data();
+    console.log('🔥 USER DATA:', data);
+
+    return data; // 👈 return raw for now
+  };
+
   const [form, setForm] = useState<any>({
     title: '',
     activity: '',
@@ -87,6 +102,25 @@ export const CreateSessionModal = ({
     location: {},
     locationDetails: {},
   });
+
+  const handleClose = () => {
+    // ✅ Reset clean
+    setForm({
+      title: '',
+      activity: '',
+      date: new Date(),
+      time: new Date(),
+      boat: null,
+      captain: null,
+      image: null,
+      totalSeats: 0,
+      minRiders: 0,
+      pricePerSeat: 0,
+      location: {},
+      locationDetails: {},
+    });
+    onClose();
+  }
 
   const handleChange = (key: string, value: any) => {
     setForm((p: any) => ({ ...p, [key]: value }));
@@ -150,6 +184,8 @@ export const CreateSessionModal = ({
         imageUrl = await ref.getDownloadURL();
       }
 
+      const operatorData = await getUserData();
+
       // ✅ Activity lookup
       const selectedActivity = activities.find(
         (a: any) => a.value === form.activity,
@@ -176,7 +212,7 @@ export const CreateSessionModal = ({
           formatted_address: form.locationDetails?.formatted_address || '',
           vicinity: form.locationDetails?.vicinity || '',
           place_id: form.locationDetails?.place_id || '',
-          image: locationImage || '', // ✅ ADD THIS
+          image: locationImage || ''
         },
 
         // 💰 Pricing
@@ -219,29 +255,15 @@ export const CreateSessionModal = ({
 
         paymentStatus: 'pending', // pending | captured | failed
         stripeAccountId: profile?.stripeAccountId,
+
+        operator: { ...operatorData?.userProfile, id: uid }
       };
 
       // ✅ Save
       await addDoc(collection(db, 'slots'), sessionData);
 
       onSuccess?.();
-      onClose();
-
-      // ✅ Reset clean
-      setForm({
-        title: '',
-        activity: '',
-        date: new Date(),
-        time: new Date(),
-        boat: null,
-        captain: null,
-        image: null,
-        totalSeats: 0,
-        minRiders: 0,
-        pricePerSeat: 0,
-        location: {},
-        locationDetails: {},
-      });
+      handleClose()
     } catch (e: any) {
       console.log(e);
       Alert.alert('Error', e.message || 'Failed to create session');
@@ -273,7 +295,7 @@ export const CreateSessionModal = ({
           {/* HEADER */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Create Session</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity onPress={handleClose}>
               <Text style={styles.close}>✕</Text>
             </TouchableOpacity>
           </View>
@@ -380,7 +402,7 @@ export const CreateSessionModal = ({
               onPress={() => setMapVisible(true)}
             >
               <MapPin size={16} />
-              <Text>{form.locationDetails?.name || 'Add location'}</Text>
+              <Text style={{ textAlign: "center" }}>{form.locationDetails?.name || 'Add location'}</Text>
             </TouchableOpacity>
 
             {/* REVENUE */}
@@ -388,29 +410,41 @@ export const CreateSessionModal = ({
               <Text style={styles.revenueTitle}>Revenue Setup</Text>
 
               <View style={styles.row}>
-                <TextInput
-                  placeholder="Seats"
-                  keyboardType="numeric"
-                  style={styles.number}
-                  value={String(form.totalSeats)}
-                  onChangeText={v => handleChange('totalSeats', Number(v))}
-                />
+                {/* TOTAL SEATS */}
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Total Seats</Text>
+                  <TextInput
+                    placeholder="0"
+                    keyboardType="numeric"
+                    style={styles.input}
+                    value={String(form.totalSeats)}
+                    onChangeText={v => handleChange('totalSeats', Number(v))}
+                  />
+                </View>
 
-                <TextInput
-                  placeholder="Min Riders"
-                  keyboardType="numeric"
-                  style={styles.number}
-                  value={String(form.minRiders)}
-                  onChangeText={v => handleChange('minRiders', Number(v))}
-                />
+                {/* MIN RIDERS */}
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Min Riders</Text>
+                  <TextInput
+                    placeholder="0"
+                    keyboardType="numeric"
+                    style={styles.input}
+                    value={String(form.minRiders)}
+                    onChangeText={v => handleChange('minRiders', Number(v))}
+                  />
+                </View>
 
-                <TextInput
-                  placeholder="Price"
-                  keyboardType="numeric"
-                  style={styles.number}
-                  value={String(form.pricePerSeat)}
-                  onChangeText={v => handleChange('pricePerSeat', Number(v))}
-                />
+                {/* PRICE */}
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Price</Text>
+                  <TextInput
+                    placeholder="₹0"
+                    keyboardType="numeric"
+                    style={styles.input}
+                    value={String(form.pricePerSeat)}
+                    onChangeText={v => handleChange('pricePerSeat', Number(v))}
+                  />
+                </View>
               </View>
 
               <Text style={styles.revenueText}>
@@ -531,14 +565,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  number: {
+  inputWrapper: {
     flex: 1,
+  },
+
+  label: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginBottom: verticalScale(4),
+    textAlign: 'center',
+  },
+
+  input: {
+    height: verticalScale(45), // 🔥 better touch
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
-    borderRadius: 10,
+    borderRadius: horizontalScale(12),
     textAlign: 'center',
-    fontWeight: '700',
-    backgroundColor: colors.white,
-    padding: horizontalScale(10),
+    fontSize: 14,
+    color: colors.textPrimary,
   },
 });
