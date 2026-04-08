@@ -13,4 +13,5 @@ export const AddSlotOptions = [
   { label: 'Wakeboarding (2h)', value: 'Wakeboarding (2h)', durationMinutes: 120 },
   { label: 'Fishing (4h)', value: 'Fishing (4h)', durationMinutes: 240 },
   { label: 'Wakesurfing (1.5h)', value: 'Wakesurfing (1.5h)', durationMinutes: 90 },
+  { label: 'Testing (2 min)', value: 'Testing (2 min)', durationMinutes: 2 },
 ];

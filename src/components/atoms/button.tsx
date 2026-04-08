@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet, View } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, View, ActivityIndicator } from 'react-native';
 import {
   colors,
   horizontalScale,
@@ -73,6 +73,35 @@ export const IconBtn: React.FC<IconBtnProps> = ({ icon, onPress }) => {
   );
 };
 
+export const ActionButton = ({
+  title,
+  onPress,
+  loading,
+  disabled,
+}: {
+  title: string;
+  onPress: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+}) => {
+  return (
+    <TouchableOpacity
+      style={[actionBtnStyles.btn, {
+        backgroundColor: loading ? colors.gray400 : colors.primary,
+        opacity: loading ? 0.7 : 1,
+      }]}
+      onPress={onPress}
+      disabled={loading || disabled}
+    >
+      {loading ? (
+        <ActivityIndicator color={colors.white} />
+      ) : (
+        <Text style={{ color: colors.white }}>{title}</Text>
+      )}
+    </TouchableOpacity>
+  );
+};
+
 /* ---------------- STYLES ---------------- */
 
 const styles = StyleSheet.create({
@@ -135,5 +164,14 @@ const iconBtnStyles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+});
+
+const actionBtnStyles = StyleSheet.create({
+  btn: {
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    margin: horizontalScale(10),
   },
 });

@@ -188,8 +188,8 @@ export const CreateSessionModal = ({
 
       const operatorData = await getUserData();
 
-      // ✅ Activity lookup
-      const selectedActivity = activities.find(
+      // ✅ Activity lookup (please put activities instend of AddSlotOptions)
+      const selectedActivity = AddSlotOptions.find(
         (a: any) => a.value === form.activity,
       );
 

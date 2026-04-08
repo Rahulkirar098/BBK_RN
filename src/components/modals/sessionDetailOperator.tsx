@@ -23,7 +23,7 @@ import {
 } from '../../theme';
 import { formatDate, mapDirection } from '../../utils/common_logic';
 import { apiCallMethod } from '../../api/apiCallMethod';
-import { Accordion } from '../atoms';
+import { Accordion, ActionButton } from '../atoms';
 
 interface Props {
   visible: boolean;
@@ -52,6 +52,7 @@ export const SessionDetailModal: React.FC<Props> = ({
   if (!session) return null;
 
   const {
+    id,
     title,
     imageUrl,
     pricePerSeat,
@@ -69,9 +70,7 @@ export const SessionDetailModal: React.FC<Props> = ({
     paymentStatus,
   } = session;
 
-  const fillPercent = totalSeats
-    ? Math.round((bookedSeats / totalSeats) * 100)
-    : 0;
+  const fillPercent = Math.min(100, Math.round((bookedSeats / totalSeats) * 100));
 
   const mapLink =
     location?.latitude && location?.longitude
@@ -82,13 +81,13 @@ export const SessionDetailModal: React.FC<Props> = ({
   const [loadingBookings, setLoadingBookings] = useState(false);
 
   useEffect(() => {
-    if (!visible || !session?.id) return;
+    if (!visible || !id) return;
 
     setLoadingBookings(true);
 
     const unsubscribe = firestore()
       .collection('slots')
-      .doc(session.id)
+      .doc(id)
       .collection('booking')
       .onSnapshot(snapshot => {
         const list = snapshot.docs.map(doc => ({
@@ -100,7 +99,10 @@ export const SessionDetailModal: React.FC<Props> = ({
         setLoadingBookings(false);
       });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      setBookings([]); // ✅ reset
+    };
   }, [visible, session?.id]);
 
   //////////Claim
@@ -149,8 +151,114 @@ export const SessionDetailModal: React.FC<Props> = ({
 
   const canClaim =
     paymentStatus === 'pending' &&
-    (status === 'min_reached' || status === 'full');
+    session?.activityStatus === 'ended';
 
+  ///////// Activity Start
+  const canStart =
+    (status === 'min_reached' || status === 'full') &&
+    session?.activityStatus === 'not_started'; // 'not_started' | 'started' | 'ended',
+
+  const [startLoading, setActivityStartLoading] = useState(false);
+
+  const handleStartActivity = async () => {
+    try {
+      setActivityStartLoading(true);
+
+      const startTime = firestore.Timestamp.now();
+
+      // 🔥 Update Firestore
+      await firestore().collection('slots').doc(session.id).update({
+        activityStatus: 'started',
+        activityStartedAt: startTime,
+      });
+
+      // 🔥 Update local state
+      setSession((prev: any) => ({
+        ...prev,
+        activityStatus: 'started',
+        activityStartedAt: startTime,
+      }));
+
+    } catch (error: any) {
+      console.log('error', error);
+    } finally {
+      setActivityStartLoading(false);
+    }
+  };
+
+  // Remaining Time Logic
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (session?.activityStatus !== 'started' || !session?.activityStartedAt) {
+      return;
+    }
+
+    const calculateRemaining = () => {
+      const start = session.activityStartedAt.seconds * 1000;
+      const now = Date.now();
+
+      const elapsed = Math.floor((now - start) / 1000);
+      const total = (durationMinutes || 0) * 60;
+
+      return Math.max(total - elapsed, 0);
+    };
+
+    // ✅ FIX: set immediately (no flicker)
+    setRemainingTime(calculateRemaining());
+
+    const interval = setInterval(() => {
+      const remaining = calculateRemaining();
+
+      if (remaining <= 0) {
+        setRemainingTime(0);
+        clearInterval(interval);
+      } else {
+        setRemainingTime(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [session?.activityStatus, session?.activityStartedAt]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+
+    return `${m}m ${s}s`;
+  };
+
+  ///////// Activity End
+  const [endLoading, setEndLoading] = useState(false);
+
+  const canEnd = session?.activityStatus === 'started' &&
+    remainingTime !== null &&
+    remainingTime === 0;
+
+
+  const handleEndActivity = async () => {
+    try {
+      setEndLoading(true);
+
+      const endTime = firestore.Timestamp.now();
+
+      await firestore().collection('slots').doc(session.id).update({
+        activityStatus: 'ended',
+        activityEndedAt: endTime,
+      });
+
+      setSession((prev: any) => ({
+        ...prev,
+        activityStatus: 'ended',
+        activityEndedAt: endTime,
+      }));
+
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setEndLoading(false);
+    }
+  };
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -314,29 +422,38 @@ export const SessionDetailModal: React.FC<Props> = ({
               )}
             </Accordion>
 
+
+            {/* Actions */}
+            {session?.activityStatus === 'started' &&
+              remainingTime !== null &&
+              remainingTime > 0 && (
+                <Text style={{ textAlign: 'center', margin: 10 }}>
+                  Remaining Time: {formatTime(remainingTime)}
+                </Text>
+              )}
+
+            {canStart && (
+              <ActionButton
+                title="Activity start"
+                onPress={handleStartActivity}
+                loading={startLoading}
+              />
+            )}
+
+            {canEnd && (
+              <ActionButton
+                title="End Activity"
+                onPress={handleEndActivity}
+                loading={endLoading}
+              />
+            )}
+
             {canClaim && (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: claimLoading
-                    ? colors.gray400
-                    : colors.primary,
-                  paddingVertical: 16,
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  margin: horizontalScale(10),
-                  opacity: claimLoading ? 0.7 : 1,
-                }}
+              <ActionButton
+                title="Claim session amount"
                 onPress={handleClaim}
-                disabled={claimLoading}
-              >
-                {claimLoading ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Text style={{ color: colors.white }}>
-                    Claim session amount
-                  </Text>
-                )}
-              </TouchableOpacity>
+                loading={claimLoading}
+              />
             )}
           </ScrollView>
         </View>
