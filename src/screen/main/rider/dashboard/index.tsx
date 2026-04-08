@@ -31,7 +31,7 @@ import TimeFilterBar from './timeLineTabs';
 import { SessionCardRider } from '../../../../components/molicules';
 import {
   PaymentModal,
-  SessionDetailCard,
+  SessionDetailsRider,
   WaiverModal,
 } from '../../../../components/modals';
 
@@ -441,7 +441,7 @@ export const RiderDashboard = () => {
         )}
       />
 
-      <SessionDetailCard
+      <SessionDetailsRider
         visible={sessionDetailModal}
         session={selectedSession}
         onClose={() => setSelectedSession(null)}

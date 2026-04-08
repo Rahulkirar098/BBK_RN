@@ -23,6 +23,8 @@ import {
   verticalScale,
 } from '../../theme';
 
+import { AddSlotOptions } from "../../utils/constants"
+
 import LocationPickerModal from './mapModal';
 
 import { getAuth } from '@react-native-firebase/auth';
@@ -309,7 +311,7 @@ export const CreateSessionModal = ({
 
             <Select
               label="Activity"
-              options={activities}
+              options={AddSlotOptions}
               value={form.activity}
               onChange={v => handleChange('activity', v)}
             />
@@ -436,7 +438,7 @@ export const CreateSessionModal = ({
 
                 {/* PRICE */}
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.label}>Price</Text>
+                  <Text style={styles.label}>Price Per seat</Text>
                   <TextInput
                     placeholder="₹0"
                     keyboardType="numeric"

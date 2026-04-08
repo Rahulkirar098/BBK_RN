@@ -29,8 +29,6 @@ const SplashScreen = () => {
     const storedUser = await AsyncStorage.getItem("bbs_user");
     const nextRoute = storedUser ? "bottom_tab" : "role-selection";
     navigation.replace(nextRoute);
-
-    console.log("first",nextRoute)
   };
 
   useEffect(() => {

@@ -15,11 +15,9 @@ const Dashboard = () => {
         const storedRole = await AsyncStorage.getItem('bbs_user');
         const onBoardStatus = await AsyncStorage.getItem('onBoardStatus');
 
-        console.log(onBoardStatus, '===@@@ 1122');
-
         const role = JSON.parse(storedRole || '{}').role;
 
-        if (onBoardStatus === 'raj') {
+        if (onBoardStatus === 'pending') {
           navigation.replace('register', { role });
           return;
         }

@@ -34,14 +34,14 @@ import { formatDuration, mapDirection } from '../../utils/common_logic';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-interface SessionDetailCardProps {
+interface SessionDetailsRiderProps {
   visible: boolean;
   session: any;
   onClose: () => void;
   onBook: () => void;
 }
 
-export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
+export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
   visible,
   session,
   onClose,
@@ -151,6 +151,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 {session.currency} {session.pricePerSeat}
               </Text>
             </View>
+
             {/* Time */}
             <View
               style={{
@@ -164,6 +165,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 {formatDuration(session.durationMinutes)}
               </Text>
             </View>
+
             {/* CAPACITY */}
             <View>
               <Text style={styles.capacityText}>
@@ -179,6 +181,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 />
               </View>
             </View>
+
             {/* TIME + LOCATION */}
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
@@ -188,6 +191,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 </Text>
               </View>
             </View>
+
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
                 <Calendar size={16} color={colors.primary} />
@@ -210,42 +214,76 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 </Text>
               </View>
             </View>
-            {/* CAPTAIN */}
-            <View style={styles.captainCard}>
-              <FastImage
-                source={{
-                  uri: session?.captain?.imageUrl,
-                  priority: FastImage.priority.normal,
-                }}
-                style={styles.avatar}
-                resizeMode={FastImage.resizeMode.cover}
-              />
 
-              <View style={{ flex: 1, gap: verticalScale(6) }}>
-                <Text style={styles.captainName}>{session?.captain?.name}</Text>
-                <View style={styles.languageContainer}>
-                  <Languages size={16} color={colors.primary} />
-                  <Text style={styles.languageText}>
-                    {session?.captain?.language}
-                  </Text>
+
+            {/* Operator */}
+            <View>
+              <Text style={{ marginVertical: verticalScale(5), ...typography.cardTitle, }}>Operator Details</Text>
+              <View style={styles.captainCard}>
+
+                <View style={{ flex: 1, gap: verticalScale(6) }}>
+                  <Text style={{ ...typography.small }}>Agency Name: {session?.operator?.agencyName}</Text>
+                  <Text style={{ ...typography.small }}>Agency phone number: {session?.operator?.phone_no}</Text>
+
+                  {session?.captain?.verified && (
+                    <View style={styles.verifiedRow}>
+                      <ShieldCheck size={14} color={colors.primary} />
+                      <Text style={styles.verifiedText}>Verified Captain</Text>
+                    </View>
+                  )}
                 </View>
 
-                {session?.captain?.verified && (
-                  <View style={styles.verifiedRow}>
-                    <ShieldCheck size={14} color={colors.primary} />
-                    <Text style={styles.verifiedText}>Verified Captain</Text>
+                {session?.captain?.rating > 0 && (
+                  <View style={styles.rating}>
+                    <Star size={14} color={colors.orange500} />
+                    <Text style={styles.ratingText}>
+                      {session.captain.rating}
+                    </Text>
                   </View>
                 )}
               </View>
+            </View>
 
-              {session?.captain?.rating > 0 && (
-                <View style={styles.rating}>
-                  <Star size={14} color={colors.orange500} />
-                  <Text style={styles.ratingText}>
-                    {session.captain.rating}
-                  </Text>
+
+            {/* CAPTAIN */}
+            <View>
+              <Text style={{ marginVertical: verticalScale(5), ...typography.cardTitle, }}>Captain Details</Text>
+              <View style={styles.captainCard}>
+                <FastImage
+                  source={{
+                    uri: session?.captain?.imageUrl,
+                    priority: FastImage.priority.normal,
+                  }}
+                  style={styles.avatar}
+                  resizeMode={FastImage.resizeMode.cover}
+                />
+
+                <View style={{ flex: 1, gap: verticalScale(6) }}>
+                  <Text style={styles.captainName}>{session?.captain?.name}</Text>
+                  <View style={styles.languageContainer}>
+                    <Languages size={16} color={colors.primary} />
+                    <Text style={styles.languageText}>
+                      {session?.captain?.language}
+                    </Text>
+                  </View>
+
+                  {session?.captain?.verified && (
+                    <View style={styles.verifiedRow}>
+                      <ShieldCheck size={14} color={colors.primary} />
+                      <Text style={styles.verifiedText}>Verified Captain</Text>
+                    </View>
+                  )}
                 </View>
-              )}
+
+                {session?.captain?.rating > 0 && (
+                  <View style={styles.rating}>
+                    <Star size={14} color={colors.orange500} />
+                    <Text style={styles.ratingText}>
+                      {session.captain.rating}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
 
             {canBook && (
@@ -386,7 +424,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: horizontalScale(50),
     height: horizontalScale(50),
-    borderRadius: horizontalScale(25),
+    borderRadius: horizontalScale(5),
   },
   captainName: {
     ...typography.cardTitle,
