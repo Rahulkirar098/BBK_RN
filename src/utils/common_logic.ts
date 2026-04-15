@@ -2,6 +2,24 @@ import { Platform } from 'react-native';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
 import { appleMapURL, googleMapURL } from '../config';
 
+//
+import { Sun, Clock, Cloud, Moon } from 'lucide-react-native';
+import { colors } from '../theme';
+
+type FormatDurationOptions = {
+  short?: boolean;     // "1h 30m"
+  showZero?: boolean;  // show "0 min"
+};
+
+type FirestoreTimestamp = { toDate: () => Date };
+type SessionDateType = 'time' | 'date' | 'full';
+
+interface TimeOfDayInfo {
+  label: string;
+  color: string;
+  Icon: any;
+}
+
 export const pickImageFromGallery = async (): Promise<Asset | null> => {
   try {
     const res = await launchImageLibrary({
@@ -19,15 +37,6 @@ export const pickImageFromGallery = async (): Promise<Asset | null> => {
     return null;
   }
 };
-
-
-type FormatDurationOptions = {
-  short?: boolean;     // "1h 30m"
-  showZero?: boolean;  // show "0 min"
-};
-
-type FirestoreTimestamp = { toDate: () => Date };
-type SessionDateType = 'time' | 'date' | 'full';
 
 export const formatDuration = (
   minutes: number | null | undefined,
@@ -125,3 +134,40 @@ export const mapDirection = (lat: string, lng: string) => {
   let platform = Platform.OS === 'android';
   return platform ? `${googleMapURL}${lat},${lng}` : `${appleMapURL}${lat},${lng}`;
 }
+
+export const getTimeOfDayInfo = (
+  timeStart: string | Date
+): TimeOfDayInfo => {
+  const date = new Date(timeStart);
+  const hour = date.getHours();
+
+  if (hour >= 5 && hour < 12) {
+    return {
+      label: 'Morning',
+      color: colors.orange500,
+      Icon: Sun,
+    };
+  }
+
+  if (hour >= 12 && hour < 17) {
+    return {
+      label: 'Afternoon',
+      color: colors.primary,
+      Icon: Clock,
+    };
+  }
+
+  if (hour >= 17 && hour < 20) {
+    return {
+      label: 'Evening',
+      color: colors.gray400,
+      Icon: Cloud,
+    };
+  }
+
+  return {
+    label: 'Night',
+    color: colors.black,
+    Icon: Moon,
+  };
+};

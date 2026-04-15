@@ -26,7 +26,6 @@ import { Map } from 'lucide-react-native';
 // ---------- Components ----------
 import Header from './header';
 import SearchBar from './search';
-import RequestTripCard from './requestTripCard';
 import TimeFilterBar from './timeLineTabs';
 import { SessionCardRider } from '../../../../components/molicules';
 import {
@@ -137,52 +136,52 @@ export const RiderDashboard = () => {
   }, []);
 
   // ---------- Filtered Sessions ---------- //
- const filteredSessions = useMemo(() => {
-  if (!sessions?.length) return [];
+  const filteredSessions = useMemo(() => {
+    if (!sessions?.length) return [];
 
-  const now = new Date();
+    const now = new Date();
 
-  const sorted = [...sessions].sort(
-    (a, b) => new Date(a.timeStart).getTime() - new Date(b.timeStart).getTime()
-  );
+    const sorted = [...sessions].sort(
+      (a, b) => new Date(a.timeStart).getTime() - new Date(b.timeStart).getTime()
+    );
 
-  return sorted.filter(session => {
-    const sessionDate = new Date(session.timeStart);
+    return sorted.filter(session => {
+      const sessionDate = new Date(session.timeStart);
 
-    const matchesSearch =
-      session.title?.toLowerCase?.().includes(searchQuery.toLowerCase()) ||
-      session.locationDetails?.name
-        ?.toLowerCase?.()
-        .includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        session.title?.toLowerCase?.().includes(searchQuery.toLowerCase()) ||
+        session.locationDetails?.name
+          ?.toLowerCase?.()
+          .includes(searchQuery.toLowerCase());
 
-    if (!matchesSearch) return false;
+      if (!matchesSearch) return false;
 
-    if (selectedTab === 'NOW') return sessionDate >= now;
+      if (selectedTab === 'NOW') return sessionDate >= now;
 
-    if (selectedTab === 'TOMORROW') {
-      const tomorrow = new Date();
-      tomorrow.setDate(now.getDate() + 1);
+      if (selectedTab === 'TOMORROW') {
+        const tomorrow = new Date();
+        tomorrow.setDate(now.getDate() + 1);
 
-      return (
-        sessionDate.getDate() === tomorrow.getDate() &&
-        sessionDate.getMonth() === tomorrow.getMonth() &&
-        sessionDate.getFullYear() === tomorrow.getFullYear()
-      );
-    }
+        return (
+          sessionDate.getDate() === tomorrow.getDate() &&
+          sessionDate.getMonth() === tomorrow.getMonth() &&
+          sessionDate.getFullYear() === tomorrow.getFullYear()
+        );
+      }
 
-    if (selectedTab === 'THIS_WEEK') {
-      const startOfWeek = new Date(now);
-      const endOfWeek = new Date(now);
+      if (selectedTab === 'THIS_WEEK') {
+        const startOfWeek = new Date(now);
+        const endOfWeek = new Date(now);
 
-      startOfWeek.setHours(0, 0, 0, 0);
-      endOfWeek.setDate(now.getDate() + 7);
+        startOfWeek.setHours(0, 0, 0, 0);
+        endOfWeek.setDate(now.getDate() + 7);
 
-      return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
-    }
+        return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+      }
 
-    return true;
-  });
-}, [sessions, selectedTab, searchQuery]);
+      return true;
+    });
+  }, [sessions, selectedTab, searchQuery]);
 
   // ---------- Digital Signature ---------- //
   const [signature, setSignature] = useState('');
@@ -394,8 +393,8 @@ export const RiderDashboard = () => {
           alignItems: 'center',
           backgroundColor: colors.primary,
           position: 'absolute',
-          bottom: 100,
-          alignSelf: 'center', // ✅ FIX
+          bottom: verticalScale(90),
+          alignSelf: 'center',
           zIndex: 99,
           flexDirection: 'row',
           gap: horizontalScale(5),
@@ -435,6 +434,11 @@ export const RiderDashboard = () => {
             onPress={() => {
               setSessionDetailModal(true);
               setSelectedSession(item);
+
+              navigation.navigate("session-booking", {
+                session: item,
+                uid: uid,
+              })
             }}
             uid={uid}
           />

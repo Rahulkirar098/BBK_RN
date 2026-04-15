@@ -12,14 +12,14 @@ interface Props {
 export const SettingsActions = ({ onResetData, onLogout }: Props) => {
   return (
     <View style={styles.container}>
-      {onResetData && (
+      {/* {onResetData && (
         <OutlinedButton
           label="Reset App Data"
           onPress={onResetData}
           Icon={RefreshCw}
           color={colors.gray400}
         />
-      )}
+      )} */}
 
       {onLogout && (
         <OutlinedButton

@@ -22,13 +22,13 @@ import {
   horizontalScale,
   typography,
   verticalScale,
-} from '../../../theme';
+} from '../../../../theme';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StepCard, BenefitItem } from '../../../components/molicules';
+import { StepCard, BenefitItem } from '../../../../components/molicules';
 import { useNavigation } from '@react-navigation/native';
 
-const ExplanationView: React.FC = () => {
+export const Explanation: React.FC = () => {
   const navigation = useNavigation();
 
   return (
@@ -116,7 +116,6 @@ const ExplanationView: React.FC = () => {
   );
 };
 
-export default ExplanationView;
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -102,9 +102,6 @@ export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
     (session.status === 'open' || session.status === 'min_reached') &&
     !isBooked &&
     !isPast; // ❌ Prevent booking if session is past
-
-  console.log(session, '==@@@ ###');
-
   return (
     <Modal
       visible={visible}

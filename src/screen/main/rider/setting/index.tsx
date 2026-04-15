@@ -152,11 +152,11 @@ export const Setting = () => {
         <SettingsHeader goBack={goBack} />
         <EmiratesIdSection idData={riderData?.userProfile?.emiratesId} />
         <PaymentMethodsSection cards={cards} onRemove={deleteCard} />
-        <LanguageNotificationsSection
+        {/* <LanguageNotificationsSection
           language={riderData?.userProfile?.language}
           setLanguage={() => {}}
-        />
-        <SettingsActions onResetData={() => {}} onLogout={logout} />
+        /> */}
+        <SettingsActions onResetData={() => { }} onLogout={logout} />
       </View>
     </SafeAreaView>
   );
