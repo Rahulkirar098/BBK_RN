@@ -7,8 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Linking,
-  Alert,
-  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { X } from 'lucide-react-native';
 import FastImage from 'react-native-fast-image';
@@ -24,6 +23,7 @@ import {
 import { formatDate, mapDirection } from '../../utils/common_logic';
 import { apiCallMethod } from '../../api/apiCallMethod';
 import { Accordion, ActionButton } from '../atoms';
+import { SessionActivityStatus } from '../../type';
 
 interface Props {
   visible: boolean;
@@ -151,12 +151,32 @@ export const SessionDetailModal: React.FC<Props> = ({
 
   const canClaim =
     paymentStatus === 'pending' &&
-    session?.activityStatus === 'ended';
+    session?.activityStatus === SessionActivityStatus.ENDED;
+
+
+  ///////// Activity Common function
+  const updateSessionStatus = async (
+    status: SessionActivityStatus,
+    extra: Record<string, any> = {}
+  ) => {
+    if (!session?.id) return;
+
+    await firestore().collection('slots').doc(session.id).update({
+      activityStatus: status,
+      ...extra,
+    });
+
+    setSession((prev: any) => ({
+      ...prev,
+      activityStatus: status,
+      ...extra,
+    }));
+  };
 
   ///////// Activity Start
   const canStart =
     (status === 'min_reached' || status === 'full') &&
-    session?.activityStatus === 'not_started'; // 'not_started' | 'started' | 'ended',
+    session?.activityStatus === SessionActivityStatus.NOT_STARTED; // 'not_started' | 'started' | 'ended',
 
   const [startLoading, setActivityStartLoading] = useState(false);
 
@@ -166,21 +186,11 @@ export const SessionDetailModal: React.FC<Props> = ({
 
       const startTime = firestore.Timestamp.now();
 
-      // 🔥 Update Firestore
-      await firestore().collection('slots').doc(session.id).update({
-        activityStatus: 'started',
+      await updateSessionStatus(SessionActivityStatus.STARTED, {
         activityStartedAt: startTime,
       });
-
-      // 🔥 Update local state
-      setSession((prev: any) => ({
-        ...prev,
-        activityStatus: 'started',
-        activityStartedAt: startTime,
-      }));
-
-    } catch (error: any) {
-      console.log('error', error);
+    } catch (error) {
+      console.log(error);
     } finally {
       setActivityStartLoading(false);
     }
@@ -190,12 +200,15 @@ export const SessionDetailModal: React.FC<Props> = ({
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
 
   useEffect(() => {
-    if (session?.activityStatus !== 'started' || !session?.activityStartedAt) {
+    if (session?.activityStatus !== SessionActivityStatus.STARTED || !session?.activityStartedAt) {
       return;
     }
 
     const calculateRemaining = () => {
-      const start = session.activityStartedAt.seconds * 1000;
+      const start = typeof session.activityStartedAt?.toDate === 'function'
+        ? session.activityStartedAt.toDate().getTime()
+        : session.activityStartedAt.seconds * 1000;
+
       const now = Date.now();
 
       const elapsed = Math.floor((now - start) / 1000);
@@ -219,7 +232,7 @@ export const SessionDetailModal: React.FC<Props> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [session?.activityStatus, session?.activityStartedAt]);
+  }, [session?.activityStatus, session?.activityStartedAt, durationMinutes]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -231,10 +244,10 @@ export const SessionDetailModal: React.FC<Props> = ({
   ///////// Activity End
   const [endLoading, setEndLoading] = useState(false);
 
-  const canEnd = session?.activityStatus === 'started' &&
+  const canEnd =
+    session?.activityStatus === SessionActivityStatus.STARTED &&
     remainingTime !== null &&
-    remainingTime === 0;
-
+    remainingTime <= 0;
 
   const handleEndActivity = async () => {
     try {
@@ -242,23 +255,16 @@ export const SessionDetailModal: React.FC<Props> = ({
 
       const endTime = firestore.Timestamp.now();
 
-      await firestore().collection('slots').doc(session.id).update({
-        activityStatus: 'ended',
+      await updateSessionStatus(SessionActivityStatus.ENDED, {
         activityEndedAt: endTime,
       });
-
-      setSession((prev: any) => ({
-        ...prev,
-        activityStatus: 'ended',
-        activityEndedAt: endTime,
-      }));
-
     } catch (error) {
       console.log(error);
     } finally {
       setEndLoading(false);
     }
   };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -424,7 +430,7 @@ export const SessionDetailModal: React.FC<Props> = ({
 
 
             {/* Actions */}
-            {session?.activityStatus === 'started' &&
+            {session?.activityStatus === SessionActivityStatus.STARTED &&
               remainingTime !== null &&
               remainingTime > 0 && (
                 <Text style={{ textAlign: 'center', margin: 10 }}>
@@ -563,8 +569,8 @@ const styles = StyleSheet.create({
   },
 
   locationImage: {
-    width: 50,
-    height: 50,
+    width: horizontalScale(50),
+    height: horizontalScale(50),
     borderRadius: 12,
   },
 
@@ -576,7 +582,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: verticalScale(5),
   },
 
   label: {

@@ -53,3 +53,15 @@ export enum SESSION_STATUS {
   CLAIMED = 'claimed',
   CANCELLED = 'cancelled',
 }
+
+export enum SessionActivityStatus {
+  NOT_STARTED = 'not_started',
+  STARTED = 'started',
+  ENDED = 'ended',
+}
+
+export enum SessionPaymentStatus {
+  PENDING = 'pending',
+  CAPTURED = 'captured',
+  FAILED = 'failed',
+}

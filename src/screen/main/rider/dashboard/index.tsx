@@ -435,10 +435,10 @@ export const RiderDashboard = () => {
               setSessionDetailModal(true);
               setSelectedSession(item);
 
-              navigation.navigate("session-booking", {
-                session: item,
-                uid: uid,
-              })
+              // navigation.navigate("session-booking", {
+              //   session: item,
+              //   uid: uid,
+              // })
             }}
             uid={uid}
           />

@@ -22,8 +22,6 @@ import {
 
 import FastImage from 'react-native-fast-image';
 
-
-
 export const InfoModal = ({ visible, onClose, session }: {
     visible: boolean;
     session: any;
@@ -185,7 +183,6 @@ export const InfoModal = ({ visible, onClose, session }: {
     )
 }
 
-
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
@@ -330,8 +327,8 @@ const styles = StyleSheet.create({
     },
     waitlistBtn: {
         backgroundColor: colors.orange500,
-        paddingVertical: 16,
-        borderRadius: 14,
+        paddingVertical: verticalScale(15),
+        borderRadius: horizontalScale(15),
         alignItems: 'center',
     },
     btnText: {

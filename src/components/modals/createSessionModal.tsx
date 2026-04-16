@@ -41,7 +41,7 @@ import {
 import storage from '@react-native-firebase/storage';
 
 import { pickImageFromGallery } from '../../utils/common_logic';
-import { SESSION_STATUS } from '../../type';
+import { SESSION_STATUS, SessionActivityStatus } from '../../type';
 import { googleApiKey } from '../../config';
 
 const getPlaceImage = (locationDetails: any) => {
@@ -198,6 +198,7 @@ export const CreateSessionModal = ({
         // 🔑 Core
         title: form.title.trim(),
         activity: form.activity,
+        activityStatus: SessionActivityStatus.NOT_STARTED,
 
         // 🕒 Time
         timeStart: Timestamp.fromDate(start),
@@ -579,7 +580,7 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    height: verticalScale(45), // 🔥 better touch
+    height: verticalScale(45),
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
