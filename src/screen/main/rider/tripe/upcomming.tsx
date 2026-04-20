@@ -34,11 +34,6 @@ export const UpcomingSessions = ({
 }: Props) => {
   return (
     <View>
-      {/* SECTION HEADER */}
-      <View style={styles.sectionHeader}>
-        <Calendar size={14} color={colors.gray400} />
-        <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
-      </View>
 
       {/* CONTENT */}
       {bookings.length === 0 ? (

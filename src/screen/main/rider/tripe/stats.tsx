@@ -58,7 +58,7 @@ export const StatsCards = ({ bookings }: Props) => {
 
 const styles = StyleSheet.create({
   container: {
-    gap: verticalScale(16),
+    gap: verticalScale(10),
   },
 
   /* ---------- PRIMARY CARD ---------- */

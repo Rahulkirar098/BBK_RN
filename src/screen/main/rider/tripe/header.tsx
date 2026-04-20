@@ -16,12 +16,13 @@ export const TripsHeader = () => {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: horizontalScale(8),
+    gap: verticalScale(2),
+    marginBottom: verticalScale(10)
   },
 
   title: {
     ...typography.sectionTitle,
     color: colors.textPrimary,
-    letterSpacing: -0.5,
   },
 
   subtitle: {
