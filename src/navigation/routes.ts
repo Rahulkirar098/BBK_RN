@@ -2,7 +2,7 @@ import Splash from '../screen/auth/SplashScreen';
 import RoleSelectionScreen from '../screen/auth/RoleSelectionScreen';
 import AuthScreen from '../screen/auth/AuthScreen';
 import Register from '../screen/auth/Register';
-import { SessionMapScreen, Explanation, SessionBooking, Ratings } from '../screen/main/rider';
+import { SessionMapScreen, Explanation, SessionBooking, Ratings, Checkout } from '../screen/main/rider';
 
 export const authNavigation = [
   {
@@ -37,8 +37,12 @@ export const mainNavigation = [
     name: 'session-booking',
     component: SessionBooking,
   },
-    {
+  {
     name: 'rating',
     component: Ratings,
+  },
+  {
+    name: 'checkout',
+    component: Checkout,
   },
 ]

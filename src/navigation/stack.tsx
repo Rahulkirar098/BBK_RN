@@ -24,10 +24,6 @@ export const StackNavigation = () => {
                     key={route.name}
                     name={route.name}
                     component={route.component}
-                    options={{
-                        statusBarStyle: 'dark',
-                        statusBarBackgroundColor: '#EF4444',
-                    }}
                 />
             ))}
 

@@ -6,3 +6,4 @@ export * from './sessionBooking';
 export * from './explanation';
 export * from "./map";
 export * from "./ratings";
+export * from "./checkout";

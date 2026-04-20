@@ -11,32 +11,110 @@ import { ArrowLeft } from "lucide-react-native";
 
 import { StarRating } from "../../../../components/atoms";
 import { colors, typography } from "../../../../theme";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
-export const Ratings = ({ navigation }: any) => {
+import firestore from '@react-native-firebase/firestore';
+import { Alert } from "react-native";
+
+export const Ratings = () => {
+
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { session, uid } = route.params;
+
   const [sessionRating, setSessionRating] = useState(0);
   const [captainRating, setCaptainRating] = useState(0);
   const [operatorRating, setOperatorRating] = useState(0);
+
+  const [loading, setLoading] = useState(false);
 
   const isValid =
     sessionRating > 0 &&
     captainRating > 0 &&
     operatorRating > 0;
 
-  const handleSubmit = () => {
-    const payload = {
-      sessionRating,
-      captainRating,
-      operatorRating,
-    };
+  // ✅ Check duplicate rating
+  const checkAlreadyRated = async () => {
+    const snapshot = await firestore()
+      .collection('ratings')
+      .where('riderId', '==', uid)
+      .where('slotId', '==', session.id)
+      .get();
 
-    console.log("Submitted:", payload);
+    return !snapshot.empty;
+  };
 
-    // 👉 call API / firestore here
+  // ✅ Update avg function
+  const updateAverageRating = async (collection: any, docId: any, rating: any) => {
+    const ref = firestore().collection(collection).doc(docId);
+
+    await firestore().runTransaction(async transaction => {
+      const doc = await transaction.get(ref);
+      if (!doc.exists) return;
+
+      const data = doc.data();
+
+      const avg = data?.ratingAvg || 0;
+      const count = data?.ratingCount || 0;
+
+      const newCount = count + 1;
+      const newAvg = (avg * count + rating) / newCount;
+
+      transaction.update(ref, {
+        ratingAvg: newAvg,
+        ratingCount: newCount,
+      });
+    });
+  };
+
+  // ✅ Submit
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+
+      const alreadyRated = await checkAlreadyRated();
+
+      if (alreadyRated) {
+        Alert.alert("Already Rated", "You already rated this session");
+        setLoading(false);
+        return;
+      }
+
+      // 🔥 1. Save rating
+      await firestore().collection('ratings').add({
+        riderId: uid,
+        operatorId: session.operator_id,
+        slotId: session.id,
+        captainId: session.captain?.id,
+
+        ratingSession: sessionRating,
+        ratingCaptain: captainRating,
+        ratingOperator: operatorRating,
+
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 🔥 2. Update averages
+      await Promise.all([
+        updateAverageRating('slots', session.id, sessionRating),
+        updateAverageRating('users', session.operator_id, operatorRating),
+        updateAverageRating('captains', session.captain?.id, captainRating),
+      ]);
+
+      Alert.alert("Success", "Thanks for your feedback!");
+
+      navigation.goBack();
+    } catch (error) {
+      console.log("Rating Error:", error);
+      Alert.alert("Error", "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      
+
       {/* 🔙 Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -45,11 +123,11 @@ export const Ratings = ({ navigation }: any) => {
 
         <Text style={styles.headerTitle}>Rate Experience</Text>
 
-        <View style={{ width: 22 }} /> {/* spacer */}
+        <View style={{ width: 22 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        
+
         {/* Session */}
         <View style={styles.card}>
           <Text style={styles.title}>How was the session experience?</Text>
@@ -75,13 +153,13 @@ export const Ratings = ({ navigation }: any) => {
         <TouchableOpacity
           style={[
             styles.submitBtn,
-            !isValid && styles.disabledBtn,
+            (!isValid || loading) && styles.disabledBtn,
           ]}
-          disabled={!isValid}
+          disabled={!isValid || loading}
           onPress={handleSubmit}
         >
           <Text style={styles.submitText}>
-            Submit Rating
+            {loading ? "Submitting..." : "Submit Rating"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -146,7 +224,7 @@ const styles = StyleSheet.create({
   },
 
   submitText: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
   },
 });

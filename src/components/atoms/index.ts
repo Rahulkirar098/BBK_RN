@@ -6,3 +6,5 @@ export * from "./stat";
 export * from "./empty";
 export * from "./accordion";
 export * from "./rating";
+export * from "./header";
+export * from "./checkbox";

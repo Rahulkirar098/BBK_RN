@@ -50,8 +50,7 @@ import { where } from '@react-native-firebase/firestore';
 import RNCalendarEvents from 'react-native-calendar-events';
 
 // ---------- Stripe ---------- //
-import { useStripe } from '@stripe/stripe-react-native';
-import { initStripe } from '@stripe/stripe-react-native';
+import { useStripe, initStripe } from '@stripe/stripe-react-native';
 
 import { getApp } from '@react-native-firebase/app';
 import { mapDirection } from '../../../../utils/common_logic';

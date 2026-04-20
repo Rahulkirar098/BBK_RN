@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react'
 import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, horizontalScale, typography, verticalScale } from '../../../../theme';
@@ -22,6 +22,30 @@ import { formatDuration, mapDirection, getTimeOfDayInfo, formatDate } from '../.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from '../../../../components/atoms';
 import { WaiverModal } from '../../../../components/modals';
+import { getCaptainRating } from '../../../../services';
+
+const renderStars = (avg: number) => {
+  return Array.from({ length: 5 }).map((_, i) => {
+    const starValue = i + 1;
+
+    let fillColor = "none";
+
+    if (avg >= starValue) {
+      fillColor = colors.orange500; // full
+    } else if (avg >= starValue - 0.5) {
+      fillColor = colors.orange500; // treat as half (UI lib dependent)
+    }
+
+    return (
+      <Star
+        key={i}
+        size={14}
+        color={colors.orange500}
+        fill={fillColor}
+      />
+    );
+  });
+};
 
 export const SessionBooking = () => {
   const route = useRoute<any>();
@@ -48,7 +72,48 @@ export const SessionBooking = () => {
     photos: false,
   });
 
-  // ---------- FETCH SESSION ----------
+  // ---------- RATING STATE ----------
+  const [captainRating, setCaptainRating] = useState({ avg: 0, count: 0 });
+  const [alreadyRated, SetAlreadyRated] = useState<boolean>(false);
+
+  // ---------- REAL-TIME CAPTAIN RATING ----------
+  useLayoutEffect(() => {
+    if (!session?.captain.id) return;
+
+    const unsubscribe = firestore()
+      .collection('captains')
+      .doc(session?.captain.id)
+      .onSnapshot((doc: any) => {
+        if (doc.exists) {
+          const data = doc.data();
+          setCaptainRating({
+            avg: data?.ratingAvg || 0,
+            count: data?.ratingCount || 0,
+          });
+        }
+      });
+
+    return () => unsubscribe();
+  }, [session?.captain.id]);
+
+  // ---------- CHECK ALREADY RATED ----------
+  useLayoutEffect(() => {
+    if (!session?.id || !uid) return;
+
+    const checkAlreadyRated = async () => {
+      const snapshot = await firestore()
+        .collection('ratings')
+        .where('riderId', '==', uid)
+        .where('slotId', '==', session.id)
+        .get();
+
+      SetAlreadyRated(!snapshot.empty);
+    };
+
+    checkAlreadyRated();
+  }, [session?.id, uid]);
+
+  // ---------- SESSION LISTENER ----------
   useEffect(() => {
     if (!session?.id) return;
 
@@ -63,12 +128,7 @@ export const SessionBooking = () => {
           });
         }
         setLoading(false);
-      },
-        error => {
-          console.log('Error fetching session:', error);
-          setLoading(false);
-        },
-      );
+      });
 
     return () => unsubscribe();
   }, [session?.id]);
@@ -228,7 +288,6 @@ export const SessionBooking = () => {
             </Text>
           </View>
 
-
         </View>
 
         <View style={styles.infoRow}>
@@ -247,13 +306,16 @@ export const SessionBooking = () => {
           </View>
         </View>
 
-        {isEnded && <TouchableOpacity style={styles.infoCard}
+        {isBooked && isEnded && !alreadyRated && (<TouchableOpacity style={styles.infoCard}
           onPress={() => {
-            navigation.navigate("rating")
+            navigation.navigate("rating", {
+              session: sessionData,
+              uid,
+            });
           }}
         >
           <Text style={styles.infoText}>⭐ How was the session</Text>
-        </TouchableOpacity>}
+        </TouchableOpacity>)}
 
 
         {/* Operator */}
@@ -272,18 +334,8 @@ export const SessionBooking = () => {
                 </View>
               )}
             </View>
-
-            {sessionData?.captain?.rating > 0 && (
-              <View style={styles.rating}>
-                <Star size={14} color={colors.orange500} />
-                <Text style={styles.ratingText}>
-                  {sessionData?.captain.rating}
-                </Text>
-              </View>
-            )}
           </View>
         </View>
-
 
         {/* CAPTAIN */}
         <View>
@@ -300,29 +352,23 @@ export const SessionBooking = () => {
 
             <View style={{ flex: 1, gap: verticalScale(6) }}>
               <Text style={styles.captainName}>{sessionData?.captain?.name}</Text>
+
               <View style={styles.languageContainer}>
                 <Languages size={16} color={colors.primary} />
                 <Text style={styles.languageText}>
                   {sessionData?.captain?.language}
                 </Text>
               </View>
-
-              {sessionData?.captain?.verified && (
-                <View style={styles.verifiedRow}>
-                  <ShieldCheck size={14} color={colors.primary} />
-                  <Text style={styles.verifiedText}>Verified Captain</Text>
-                </View>
-              )}
             </View>
 
-            {sessionData?.captain?.rating > 0 && (
-              <View style={styles.rating}>
-                <Star size={14} color={colors.orange500} />
-                <Text style={styles.ratingText}>
-                  {sessionData.captain.rating}
-                </Text>
-              </View>
-            )}
+
+            {captainRating.avg > 0 && <View style={styles.rating}>
+              {renderStars(captainRating.avg)}
+              <Text style={styles.ratingText}>
+                {captainRating.avg.toFixed(1)} ({captainRating.count})
+              </Text>
+            </View>}
+
           </View>
         </View>
 
@@ -366,7 +412,10 @@ export const SessionBooking = () => {
         }}
         onConfirm={() => {
           setShowWaiverModal(false);
-          // setPaymentModal(true);
+          navigation.navigate("checkout", {
+            session: sessionData,
+            uid: uid,
+          });
         }}
         signature={signature}
         setSignature={setSignature}
