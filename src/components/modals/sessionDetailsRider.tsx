@@ -28,8 +28,8 @@ import {
   typography,
   verticalScale,
 } from '../../theme';
-import { Button } from '../atoms';
-import { formatDuration, mapDirection } from '../../utils/common_logic';
+import { Button, StarRating } from '../atoms';
+import { formatDuration, getTimeOfDayInfo, mapDirection } from '../../utils/common_logic';
 
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -50,19 +50,6 @@ export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
   if (!session) return null;
 
   const progressPercent = (session.bookedSeats / session.totalSeats) * 100;
-
-  const getTimeOfDayInfo = (timeStart: string | Date) => {
-    const date = new Date(timeStart);
-    const hour = date.getHours();
-
-    if (hour >= 5 && hour < 12)
-      return { label: 'Morning', color: colors.orange500, Icon: Sun };
-    if (hour >= 12 && hour < 17)
-      return { label: 'Afternoon', color: colors.primary, Icon: Clock };
-    if (hour >= 17 && hour < 20)
-      return { label: 'Evening', color: colors.gray400, Icon: Cloud };
-    return { label: 'Night', color: colors.black, Icon: Moon }; // You can import Moon from lucide
-  };
 
   const {
     label: timeLabel,
@@ -102,6 +89,12 @@ export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
     (session.status === 'open' || session.status === 'min_reached') &&
     !isBooked &&
     !isPast; // ❌ Prevent booking if session is past
+
+  const isEnded = session?.activityStatus === 'ended';
+
+  const [rating, setRating] = useState<number>(1);
+
+
   return (
     <Modal
       visible={visible}
@@ -241,7 +234,6 @@ export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
               </View>
             </View>
 
-
             {/* CAPTAIN */}
             <View>
               <Text style={{ marginVertical: verticalScale(5), ...typography.cardTitle, }}>Captain Details</Text>
@@ -283,6 +275,18 @@ export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
               </View>
             </View>
 
+           { isEnded && <View style={{}}>
+              <Text style={{ marginBottom: 10 }}>
+                Rating: {rating}
+              </Text>
+
+              <StarRating
+                rating={rating}
+                onChange={setRating}
+              />
+            </View>}
+
+
             {canBook && (
               <>
                 <Text style={styles.footerNote}>
@@ -292,14 +296,14 @@ export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
               </>
             )}
 
-            {!canBook && isPast && (
+            {!canBook && isPast && !isEnded && (
               <Text style={styles.footerNote}>
                 ⏰ Session has already started or passed.
               </Text>
             )}
 
             {/* Show direction ONLY if user already booked */}
-            {isBooked && (
+            {isBooked && !isEnded && (
               <TouchableOpacity
                 onPress={() =>
                   Linking.openURL(

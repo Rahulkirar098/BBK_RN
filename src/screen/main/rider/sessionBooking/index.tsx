@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, horizontalScale, typography, verticalScale } from '../../../../theme';
 
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
-import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
 import {
@@ -19,60 +18,148 @@ import {
 
 import FastImage from 'react-native-fast-image';
 
-import { formatDuration, mapDirection, getTimeOfDayInfo } from '../../../../utils/common_logic';
-
+import { formatDuration, mapDirection, getTimeOfDayInfo, formatDate } from '../../../../utils/common_logic';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Button } from '../../../../components/atoms';
+import { WaiverModal } from '../../../../components/modals';
 
 export const SessionBooking = () => {
   const route = useRoute<any>();
-  const { session } = route.params;
+  const navigation = useNavigation<any>();
+  const { session, uid } = route.params;
 
   const { label, color, Icon } = getTimeOfDayInfo(session.timeStart);
 
   const progressPercent = (session.bookedSeats / session.totalSeats) * 100;
 
+  // ---------- STATE ----------
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [isBooked, setIsBooked] = useState(false);
+  const [showWaiverModal, setShowWaiverModal] = useState(false);
 
+  const [signature, setSignature] = useState('');
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  const [checks, setChecks] = useState({
+    risks: false,
+    medical: false,
+    liability: false,
+    photos: false,
+  });
+
+  // ---------- FETCH SESSION ----------
   useEffect(() => {
     if (!session?.id) return;
-
-    const uid = auth().currentUser?.uid;
-    if (!uid) return;
 
     const unsubscribe = firestore()
       .collection('slots')
       .doc(session.id)
+      .onSnapshot((doc: any) => {
+        if (doc.exists) {
+          setSessionData({
+            id: doc.id,
+            ...doc.data(),
+          });
+        }
+        setLoading(false);
+      },
+        error => {
+          console.log('Error fetching session:', error);
+          setLoading(false);
+        },
+      );
+
+    return () => unsubscribe();
+  }, [session?.id]);
+
+  // ---------- BOOKING LISTENER ----------
+  useEffect(() => {
+    if (!sessionData?.id) return;
+
+    const unsubscribe = firestore()
+      .collection('slots')
+      .doc(sessionData.id)
       .collection('booking')
       .onSnapshot(snapshot => {
         const list = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }));
-        const alreadyBooked = list.some((r: any) => r.id === uid);
 
+        const alreadyBooked = list.some((r: any) => r.id === uid);
         setIsBooked(alreadyBooked);
       });
 
     return () => unsubscribe();
-  }, [session?.id]);
+  }, [sessionData?.id]);
 
-  const isPast = new Date(session.timeStart).getTime() < Date.now();
+  // ---------- LOADING UI ----------
+  if (loading || !sessionData) {
+    return (
+      <SafeAreaView style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Text>Loading session...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const isPast = new Date(sessionData?.timeStart).getTime() < Date.now();
 
   // ✅ Determine booking & direction logic
   const canBook =
-    (session.status === 'open' || session.status === 'min_reached') &&
+    (sessionData?.status === 'open' || sessionData?.status === 'min_reached') &&
     !isBooked &&
-    !isPast; // ❌ Prevent booking if session is past
+    !isPast;
+
+  const isEnded = session?.activityStatus === 'ended';
+
+  // Book session logic
+  const handleBookSession = async () => {
+    if (sessionData) {
+      const storedUser = await AsyncStorage.getItem('bbs_user');
+      if (!storedUser) throw new Error('User not logged in');
+
+      const user = JSON.parse(storedUser);
+      let isUser = sessionData?.ridersProfile?.filter(
+        (item: any) => item?.uid == user?.uid,
+      );
+
+      if (isUser?.length) {
+        Alert.alert('You have already booked this session');
+        return;
+      } else {
+        setShowWaiverModal(true);
+      }
+    }
+  };
+
+  // Waiver logic
+  const handleWaiverClear = () => {
+    setSignature('');
+    setHasScrolled(false);
+    setChecks({
+      risks: false,
+      medical: false,
+      liability: false,
+      photos: false,
+    });
+  };
 
   return (
     <SafeAreaView style={{
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.background
     }}>
+
       {/* IMAGE HEADER */}
       <View style={styles.imageContainer}>
         <FastImage
           source={{
-            uri: session?.imageUrl,
+            uri: sessionData?.imageUrl,
             priority: FastImage.priority.high,
           }}
           style={styles.image}
@@ -94,10 +181,10 @@ export const SessionBooking = () => {
       >
         {/* TITLE + PRICE */}
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{session.title}</Text>
+          <Text style={styles.title}>{sessionData?.title}</Text>
 
           <Text style={styles.price}>
-            {session.currency} {session.pricePerSeat}
+            {sessionData?.currency} {sessionData?.pricePerSeat}
           </Text>
         </View>
 
@@ -111,14 +198,14 @@ export const SessionBooking = () => {
         >
           <Clock size={horizontalScale(12)} color={colors.black} />
           <Text style={{ ...typography.small, color: colors.black }}>
-            {formatDuration(session.durationMinutes)}
+            {formatDuration(sessionData?.durationMinutes)}
           </Text>
         </View>
 
         {/* CAPACITY */}
         <View>
           <Text style={styles.capacityText}>
-            {session.bookedSeats}/{session.totalSeats} Seats
+            {sessionData?.bookedSeats}/{sessionData?.totalSeats} Seats
           </Text>
 
           <View style={styles.progressBar}>
@@ -137,7 +224,7 @@ export const SessionBooking = () => {
           <View style={{ flexDirection: "row", gap: horizontalScale(5) }}>
             <MapPin size={16} color={colors.primary} />
             <Text style={styles.infoText}>
-              {session?.locationDetails?.name}
+              {sessionData?.locationDetails?.name}
             </Text>
           </View>
 
@@ -148,24 +235,25 @@ export const SessionBooking = () => {
           <View style={styles.infoCard}>
             <Calendar size={16} color={colors.primary} />
             <Text style={styles.infoText}>
-              {new Date(session.timeStart).toLocaleDateString([], {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-              })}
+              {formatDate(sessionData?.timeStart, "date")}
             </Text>
           </View>
 
           <View style={styles.infoCard}>
             <Clock size={16} color={colors.primary} />
             <Text style={styles.infoText}>
-              {new Date(session.timeStart).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatDate(sessionData?.timeStart, "time")}
             </Text>
           </View>
         </View>
+
+        {isEnded && <TouchableOpacity style={styles.infoCard}
+          onPress={() => {
+            navigation.navigate("rating")
+          }}
+        >
+          <Text style={styles.infoText}>⭐ How was the session</Text>
+        </TouchableOpacity>}
 
 
         {/* Operator */}
@@ -174,10 +262,10 @@ export const SessionBooking = () => {
           <View style={styles.captainCard}>
 
             <View style={{ flex: 1, gap: verticalScale(6) }}>
-              <Text style={{ ...typography.small }}>Agency Name: {session?.operator?.agencyName}</Text>
-              <Text style={{ ...typography.small }}>Agency phone number: {session?.operator?.phone_no}</Text>
+              <Text style={{ ...typography.small }}>Agency Name: {sessionData?.operator?.agencyName}</Text>
+              <Text style={{ ...typography.small }}>Agency phone number: {sessionData?.operator?.phone_no}</Text>
 
-              {session?.captain?.verified && (
+              {sessionData?.captain?.verified && (
                 <View style={styles.verifiedRow}>
                   <ShieldCheck size={14} color={colors.primary} />
                   <Text style={styles.verifiedText}>Verified Captain</Text>
@@ -185,11 +273,11 @@ export const SessionBooking = () => {
               )}
             </View>
 
-            {session?.captain?.rating > 0 && (
+            {sessionData?.captain?.rating > 0 && (
               <View style={styles.rating}>
                 <Star size={14} color={colors.orange500} />
                 <Text style={styles.ratingText}>
-                  {session.captain.rating}
+                  {sessionData?.captain.rating}
                 </Text>
               </View>
             )}
@@ -203,7 +291,7 @@ export const SessionBooking = () => {
           <View style={styles.captainCard}>
             <FastImage
               source={{
-                uri: session?.captain?.imageUrl,
+                uri: sessionData?.captain?.imageUrl,
                 priority: FastImage.priority.normal,
               }}
               style={styles.avatar}
@@ -211,15 +299,15 @@ export const SessionBooking = () => {
             />
 
             <View style={{ flex: 1, gap: verticalScale(6) }}>
-              <Text style={styles.captainName}>{session?.captain?.name}</Text>
+              <Text style={styles.captainName}>{sessionData?.captain?.name}</Text>
               <View style={styles.languageContainer}>
                 <Languages size={16} color={colors.primary} />
                 <Text style={styles.languageText}>
-                  {session?.captain?.language}
+                  {sessionData?.captain?.language}
                 </Text>
               </View>
 
-              {session?.captain?.verified && (
+              {sessionData?.captain?.verified && (
                 <View style={styles.verifiedRow}>
                   <ShieldCheck size={14} color={colors.primary} />
                   <Text style={styles.verifiedText}>Verified Captain</Text>
@@ -227,11 +315,11 @@ export const SessionBooking = () => {
               )}
             </View>
 
-            {session?.captain?.rating > 0 && (
+            {sessionData?.captain?.rating > 0 && (
               <View style={styles.rating}>
                 <Star size={14} color={colors.orange500} />
                 <Text style={styles.ratingText}>
-                  {session.captain.rating}
+                  {sessionData.captain.rating}
                 </Text>
               </View>
             )}
@@ -243,24 +331,24 @@ export const SessionBooking = () => {
             <Text style={styles.footerNote}>
               No charge until session is confirmed.
             </Text>
-            {/* <Button label="Book Seat" onPress={onBook} /> */}
+            <Button label="Book Seat" onPress={handleBookSession} />
           </>
         )}
 
-        {!canBook && isPast && (
+        {!canBook && isPast && !isEnded && (
           <Text style={styles.footerNote}>
             ⏰ Session has already started or passed.
           </Text>
         )}
 
         {/* Show direction ONLY if user already booked */}
-        {isBooked && (
+        {isBooked && !isEnded && (
           <TouchableOpacity
             onPress={() =>
               Linking.openURL(
                 mapDirection(
-                  session?.location.latitude,
-                  session?.location.longitude,
+                  sessionData?.location.latitude,
+                  sessionData?.location.longitude,
                 ),
               )
             }
@@ -269,6 +357,25 @@ export const SessionBooking = () => {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      <WaiverModal
+        visible={showWaiverModal}
+        onClose={() => {
+          setShowWaiverModal(false);
+          handleWaiverClear();
+        }}
+        onConfirm={() => {
+          setShowWaiverModal(false);
+          // setPaymentModal(true);
+        }}
+        signature={signature}
+        setSignature={setSignature}
+        hasScrolled={hasScrolled}
+        setHasScrolled={setHasScrolled}
+        checks={checks}
+        setChecks={setChecks}
+      />
+
     </SafeAreaView>
   )
 }
@@ -341,10 +448,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.gray100,
     padding: horizontalScale(12),
-    borderRadius: 12,
+    borderRadius: horizontalScale(12),
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    borderWidth: 1,
+    borderColor: colors.gray400,
   },
   infoText: {
     ...typography.body,

@@ -23,7 +23,12 @@ export const StackNavigation = () => {
                 <NavigateStack.Screen
                     key={route.name}
                     name={route.name}
-                    component={route.component} />
+                    component={route.component}
+                    options={{
+                        statusBarStyle: 'dark',
+                        statusBarBackgroundColor: '#EF4444',
+                    }}
+                />
             ))}
 
             <NavigateStack.Screen

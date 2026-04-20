@@ -432,13 +432,12 @@ export const RiderDashboard = () => {
           <SessionCardRider
             session={item}
             onPress={() => {
-              setSessionDetailModal(true);
-              setSelectedSession(item);
-
-              // navigation.navigate("session-booking", {
-              //   session: item,
-              //   uid: uid,
-              // })
+              // setSessionDetailModal(true);
+              // setSelectedSession(item);
+              navigation.navigate("session-booking", {
+                session: item,
+                uid: uid,
+              })
             }}
             uid={uid}
           />

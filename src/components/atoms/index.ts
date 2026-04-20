@@ -5,3 +5,4 @@ export * from "./button";
 export * from "./stat";
 export * from "./empty";
 export * from "./accordion";
+export * from "./rating";

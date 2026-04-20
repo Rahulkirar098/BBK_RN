@@ -134,7 +134,7 @@ export const RiderProfile = () => {
           setSkillLevel={updateSkillLevel}
         />
 
-        <UpcomingBookings
+        {/* <UpcomingBookings
           upcomingBookings={riderData?.upcomingBookings || []}
           onBrowse={() => {}}
         />
@@ -143,7 +143,7 @@ export const RiderProfile = () => {
           bookings={riderData?.bookings || []}
           pastBookings={riderData?.pastBookings || []}
           onBrowse={() => {}}
-        />
+        /> */}
       </View>
     </SafeAreaView>
   );
