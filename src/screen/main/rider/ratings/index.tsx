@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft } from "lucide-react-native";
 
-import { StarRating } from "../../../../components/atoms";
+import { ScreenHeader, StarRating } from "../../../../components/atoms";
 import { colors, typography } from "../../../../theme";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -116,15 +116,7 @@ export const Ratings = () => {
     <SafeAreaView style={styles.container}>
 
       {/* 🔙 Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Rate Experience</Text>
-
-        <View style={{ width: 22 }} />
-      </View>
+      <ScreenHeader title="Rate Experience" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
 

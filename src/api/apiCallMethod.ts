@@ -1,5 +1,5 @@
 import { instance } from './index';
-import { onBoarding, paymentIntent, moneyTransaction } from './endpoint';
+import { onBoarding, paymentIntent, moneyTransaction, allEndpoints } from './endpoint';
 
 export const apiCallMethod = {
   createConnectAccount: (payload: { operatorUid: string; email: string }) => {
@@ -24,5 +24,15 @@ export const apiCallMethod = {
   //Money Transaction
   captureAll: (payload: { sessionId: string }) => {
     return instance.post(moneyTransaction.captureAll, payload);
+  },
+
+  //All Method
+  finalizeBooking: (payload: {
+    sessionId: string;
+    operatorUid: string;
+    riderUid: string;
+    paymentIntentId: string;
+  }) => {
+    return instance.post(allEndpoints.finalizeBooking, payload);
   },
 };

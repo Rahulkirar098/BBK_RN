@@ -5,7 +5,6 @@ import {
   Text,
   ActivityIndicator,
   ScrollView,
-  View,
 } from 'react-native';
 
 import {
@@ -21,25 +20,38 @@ import { useNavigation } from '@react-navigation/native';
 
 import { TripsHeader } from './header';
 import { StatsCards } from './stats';
-import { UpcomingSessions } from './upcomming';
+import { BookingHistory } from './bookingHistory';
 
 /* ---------------- REAL-TIME BOOKINGS LISTENER ---------------- */
-const subscribeUserBookings = (uid: string, callback: (data: any[]) => void) => {
+const subscribeUserBookings = (
+  uid: string,
+  callback: (data: any[]) => void,
+  onError: () => void
+) => {
   return firestore()
-    .collection('users')
-    .doc(uid)
-    .collection('history')
+    .collection('bookings')
+    .where('riderId', '==', uid)
     .orderBy('createdAt', 'desc')
-    .onSnapshot(snapshot => {
-      const bookings = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+    .onSnapshot(
+      snapshot => {
+        const bookings = snapshot.docs.map(doc => {
+          const data = doc.data();
 
-      callback(bookings);
-    }, error => {
-      console.log('Booking listener error:', error);
-    });
+          return {
+            id: doc.id,
+            ...data,
+            timeStart:
+              data.timeStart?.toDate?.() || new Date(data.timeStart),
+          };
+        });
+
+        callback(bookings);
+      },
+      error => {
+        console.log('Booking listener error:', error);
+        onError(); // 🔥 VERY IMPORTANT
+      }
+    );
 };
 
 /* ---------------- MAIN COMPONENT ---------------- */
@@ -57,11 +69,16 @@ export const Trip = () => {
       return;
     }
 
-    // 🔥 Real-time listener
-    const unsubscribe = subscribeUserBookings(currentUser.uid, data => {
-      setBookings(data);
-      setLoading(false);
-    });
+    const unsubscribe = subscribeUserBookings(
+      currentUser.uid,
+      data => {
+        setBookings(data);
+        setLoading(false);
+      },
+      () => {
+        setLoading(false); // 🔥 prevent infinite loading
+      }
+    );
 
     return () => unsubscribe();
   }, []);
@@ -76,16 +93,16 @@ export const Trip = () => {
     );
   }
 
-  /* ---------------- EMPTY STATE ---------------- */
-  if (!bookings.length) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <Text>No trips found 🚤</Text>
-      </SafeAreaView>
-    );
-  }
+  /* ---------------- SPLIT BOOKINGS ---------------- */
+  const now = new Date();
 
-  console.log(bookings)
+  const upcomingBookings = bookings.filter(
+    b => b.timeStart && b.timeStart > now
+  );
+
+  const pastBookings = bookings.filter(
+    b => b.timeStart && b.timeStart <= now
+  );
 
   /* ---------------- MAIN UI ---------------- */
   return (
@@ -96,13 +113,19 @@ export const Trip = () => {
       >
         <TripsHeader />
 
-        {/* Pass real data */}
-        <StatsCards bookings={bookings} />
+        {/* <StatsCards bookings={bookings} /> */}
 
-        <UpcomingSessions
-          bookings={bookings}
-          // onBrowse={() => navigation.navigate('Explore')}
+        <BookingHistory
+          type="upcoming"
+          bookings={upcomingBookings}
         />
+
+        <BookingHistory
+          type="past"
+          bookings={pastBookings}
+        />
+
+
       </ScrollView>
     </SafeAreaView>
   );

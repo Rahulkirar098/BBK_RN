@@ -1,5 +1,5 @@
-import { collection, query, where, onSnapshot } from '@react-native-firebase/firestore';
 import firestore from '@react-native-firebase/firestore';
+import { collection, query, where, onSnapshot } from '@react-native-firebase/firestore';
 
 const db = firestore();
 

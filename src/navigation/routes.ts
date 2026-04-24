@@ -2,7 +2,7 @@ import Splash from '../screen/auth/SplashScreen';
 import RoleSelectionScreen from '../screen/auth/RoleSelectionScreen';
 import AuthScreen from '../screen/auth/AuthScreen';
 import Register from '../screen/auth/Register';
-import { SessionMapScreen, Explanation, SessionBooking, Ratings, Checkout } from '../screen/main/rider';
+import { SessionMapScreen, Explanation, SessionBooking, Ratings, Checkout, ChatScreen } from '../screen/main/rider';
 
 export const authNavigation = [
   {
@@ -44,5 +44,9 @@ export const mainNavigation = [
   {
     name: 'checkout',
     component: Checkout,
+  },
+   {
+    name: 'chat',
+    component: ChatScreen,
   },
 ]

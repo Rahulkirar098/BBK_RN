@@ -40,7 +40,7 @@ export const StatsCards = ({ bookings }: Props) => {
           <Text style={styles.label}>RIDES</Text>
         </View>
 
-        <Text style={styles.value}>{12 + bookings.length}</Text>
+        <Text style={styles.value}>{bookings.length}</Text>
       </View>
 
       {/* HOURS */}

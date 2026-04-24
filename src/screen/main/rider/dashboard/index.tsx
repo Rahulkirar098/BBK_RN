@@ -96,8 +96,8 @@ export const RiderDashboard = () => {
   useEffect(() => {
     const q = query(
       collectionGroup(db, 'slots'),
-      // where('status', '==', 'open'),
-      // where('paymentStatus', '==', 'pending'),
+      where('status', '==', 'open'),
+      where('paymentStatus', '==', 'pending'),
     );
     const unsubscribe = onSnapshot(
       q,
@@ -155,27 +155,36 @@ export const RiderDashboard = () => {
 
       if (!matchesSearch) return false;
 
-      if (selectedTab === 'NOW') return sessionDate >= now;
+      if (selectedTab === 'NOW') {
+        // Show only today's future sessions (not past sessions)
+        const isToday =
+          sessionDate.getDate() === now.getDate() &&
+          sessionDate.getMonth() === now.getMonth() &&
+          sessionDate.getFullYear() === now.getFullYear();
+
+        return isToday && sessionDate >= now;
+      }
 
       if (selectedTab === 'TOMORROW') {
+        // Show only tomorrow's future sessions (not past)
         const tomorrow = new Date();
         tomorrow.setDate(now.getDate() + 1);
 
-        return (
+        const isTomorrow =
           sessionDate.getDate() === tomorrow.getDate() &&
           sessionDate.getMonth() === tomorrow.getMonth() &&
-          sessionDate.getFullYear() === tomorrow.getFullYear()
-        );
+          sessionDate.getFullYear() === tomorrow.getFullYear();
+
+        return isTomorrow && sessionDate >= now;
       }
 
       if (selectedTab === 'THIS_WEEK') {
-        const startOfWeek = new Date(now);
+        // Show upcoming 7 days future sessions (not past)
         const endOfWeek = new Date(now);
-
-        startOfWeek.setHours(0, 0, 0, 0);
         endOfWeek.setDate(now.getDate() + 7);
+        endOfWeek.setHours(23, 59, 59, 999);
 
-        return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+        return sessionDate >= now && sessionDate <= endOfWeek;
       }
 
       return true;

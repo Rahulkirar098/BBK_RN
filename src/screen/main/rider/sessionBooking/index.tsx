@@ -20,7 +20,7 @@ import FastImage from 'react-native-fast-image';
 
 import { formatDuration, mapDirection, getTimeOfDayInfo, formatDate } from '../../../../utils/common_logic';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Button } from '../../../../components/atoms';
+import { Button, ScreenHeader } from '../../../../components/atoms';
 import { WaiverModal } from '../../../../components/modals';
 import { getCaptainRating } from '../../../../services';
 
@@ -210,10 +210,9 @@ export const SessionBooking = () => {
   };
 
   return (
-    <SafeAreaView style={{
-      flex: 1,
-      backgroundColor: colors.background
-    }}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScreenHeader title={sessionData?.title} onBack={() => navigation.goBack()} />
+
 
       {/* IMAGE HEADER */}
       <View style={styles.imageContainer}>
@@ -430,11 +429,9 @@ export const SessionBooking = () => {
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  safeArea: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    padding: horizontalScale(20),
+    backgroundColor: colors.background,
   },
   imageContainer: {
     height: 220,

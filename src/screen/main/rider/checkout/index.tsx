@@ -28,9 +28,15 @@ import PaymentCardPreview from './cardDesign';
 
 import RNCalendarEvents from 'react-native-calendar-events';
 import { mapDirection } from '../../../../utils/common_logic';
+
+
 // ---------- Stripe ---------- //
 import { useStripe, initStripe, CardField } from '@stripe/stripe-react-native';
 import { stripKey } from '../../../../config';
+
+
+// ---------- firestore ---------- //
+import firestore from '@react-native-firebase/firestore';
 
 
 export const Checkout = () => {
@@ -79,6 +85,7 @@ export const Checkout = () => {
     } catch (err: any) {
       console.error(err?.response?.data?.error);
       Alert.alert('Error', err?.response?.data?.error || 'Something went wrong');
+      setLoading(false);
     }
   };
 
@@ -112,87 +119,86 @@ export const Checkout = () => {
         { paymentMethodType: 'Card' },
       );
 
-      console.log(paymentIntent);
-
       if (error) {
         Alert.alert('Payment failed', error.message || 'Try again');
-        console.log(error.message);
+        console.log(error.message, "===@@@ payment error");
+        setLoading(false);
         return;
       }
 
       if (!paymentIntent) {
+        setLoading(false);
         throw new Error('Payment confirmation failed');
       }
 
-      // 🔥 Call backend to finalize booking
-      const liveURL = 'https://bbk-be-1smn.vercel.app';
-
-      const finalizeResponse = await fetch(`${liveURL}/finalize-booking`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          operatorUid,
-          riderUid: riderUid,
-          paymentIntentId: paymentIntent.id,
-        }),
-      });
-
-      const finalizeData = await finalizeResponse.json();
-
-      if (!finalizeResponse.ok) {
-        console.log('error', '===@@@');
-        throw new Error(finalizeData.error || 'Booking failed');
+      let body = {
+        sessionId,
+        operatorUid,
+        riderUid: riderUid,
+        paymentIntentId: paymentIntent.id,
       }
+      const response = await apiCallMethod.finalizeBooking(body)
 
-      Alert.alert('Success', 'Seat reserved successfully');
+      if (response.status == 200) {
 
-      try {
-        const permission = await RNCalendarEvents.requestPermissions();
+        Alert.alert('Success', 'Seat reserved successfully');
 
-        if (permission === 'authorized') {
-          let startDate: Date;
+        try {
+          const permission = await RNCalendarEvents.requestPermissions();
 
-          if (!session?.timeStart) {
-            throw new Error('Invalid timeStart');
-          }
+          if (permission === 'authorized') {
+            let startDate: Date;
 
-          // Handle Firestore Timestamp
-          if (typeof session.timeStart?.toDate === 'function') {
-            startDate = session.timeStart.toDate();
+            if (!session?.timeStart) {
+              throw new Error('Invalid timeStart');
+            }
+
+            // Handle Firestore Timestamp
+            if (typeof session.timeStart?.toDate === 'function') {
+              startDate = session.timeStart.toDate();
+            } else {
+              startDate = new Date(session.timeStart);
+            }
+
+            if (isNaN(startDate.getTime())) {
+              throw new Error('Invalid startDate format');
+            }
+
+            const duration = session?.durationMinutes || 0;
+            const endDate = new Date(startDate.getTime() + duration * 60000);
+
+            const lat = session?.location?.latitude;
+            const lng = session?.location?.longitude;
+
+            const mapLink = mapDirection(lat, lng);
+
+            await RNCalendarEvents.saveEvent('Boat Riding Session', {
+              startDate: startDate.toISOString(),
+              endDate: endDate.toISOString(),
+              location: session?.locationDetails?.name,
+              notes: `Your booked session\n\nNavigate: ${mapLink}`,
+            });
           } else {
-            startDate = new Date(session.timeStart);
+            Alert.alert('Please allow permission');
           }
-
-          if (isNaN(startDate.getTime())) {
-            throw new Error('Invalid startDate format');
-          }
-
-          const duration = session?.durationMinutes || 0;
-          const endDate = new Date(startDate.getTime() + duration * 60000);
-
-          const lat = session?.location?.latitude;
-          const lng = session?.location?.longitude;
-
-          const mapLink = mapDirection(lat, lng);
-
-          await RNCalendarEvents.saveEvent('Boat Riding Session', {
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
-            location: session?.locationDetails?.name,
-            notes: `Your booked session\n\nNavigate: ${mapLink}`,
-          });
-        } else {
-          Alert.alert('Please allow permission');
+        } catch (error) {
+          console.log(error, '===@@@ calender');
         }
-      } catch (error) {
-        console.log(error, '===@@@ calender');
+
+        navigation.navigate("bottom_tab")
+
+      } else {
+        console.log(response.data.error, '===@@@ finalizeResponse');
+        setLoading(false);
+        throw new Error(
+          response.data.error || 'Booking failed',
+        );
       }
 
-      navigation.navigate("bottom_tab")
     } catch (err: any) {
       console.log(err.message);
       Alert.alert('Error', err.message || 'Something went wrong');
+      setLoading(false);
     } finally {
       setLoading(false);
     }

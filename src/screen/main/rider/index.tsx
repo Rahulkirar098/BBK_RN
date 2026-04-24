@@ -7,3 +7,4 @@ export * from './explanation';
 export * from "./map";
 export * from "./ratings";
 export * from "./checkout";
+export * from "./chat";
