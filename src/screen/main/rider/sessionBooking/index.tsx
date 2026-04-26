@@ -22,7 +22,7 @@ import { formatDuration, mapDirection, getTimeOfDayInfo, formatDate } from '../.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, ScreenHeader } from '../../../../components/atoms';
 import { WaiverModal } from '../../../../components/modals';
-import { getCaptainRating } from '../../../../services';
+
 
 const renderStars = (avg: number) => {
   return Array.from({ length: 5 }).map((_, i) => {

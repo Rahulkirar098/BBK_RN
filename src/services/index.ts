@@ -31,26 +31,5 @@ export const listenUserCollection = (
     }
   );
 
-  return unsubscribe; // important
-};
-
-
-export const getCaptainRating = async (captainId: string) => {
-  try {
-    const doc: any = await firestore()
-      .collection('captains')
-      .doc(captainId)
-      .get();
-
-    if (doc.exists) {
-      const data = doc.data();
-
-      return {
-        avg: data?.ratingAvg || 0,
-        count: data?.ratingCount || 0,
-      };
-    }
-  } catch (error) {
-    console.log(error);
-  }
+  return unsubscribe;
 };

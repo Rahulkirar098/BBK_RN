@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft } from "lucide-react-native";
 
 import { ScreenHeader, StarRating } from "../../../../components/atoms";
 import { colors, typography } from "../../../../theme";
@@ -83,8 +82,8 @@ export const Ratings = () => {
       // 🔥 1. Save rating
       await firestore().collection('ratings').add({
         riderId: uid,
-        operatorId: session.operator_id,
-        slotId: session.id,
+        operatorId: session.operator_id ? session.operator_id : session.operatorId,
+        slotId: session?.slotId ? session?.slotId : session?.id,
         captainId: session.captain?.id,
 
         ratingSession: sessionRating,
@@ -96,8 +95,8 @@ export const Ratings = () => {
 
       // 🔥 2. Update averages
       await Promise.all([
-        updateAverageRating('slots', session.id, sessionRating),
-        updateAverageRating('users', session.operator_id, operatorRating),
+        updateAverageRating('slots', session?.slotId ? session?.slotId : session?.id, sessionRating),
+        updateAverageRating('users', session.operator_id ? session.operator_id : session.operatorId, operatorRating),
         updateAverageRating('captains', session.captain?.id, captainRating),
       ]);
 

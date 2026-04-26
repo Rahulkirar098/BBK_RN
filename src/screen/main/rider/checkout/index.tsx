@@ -89,11 +89,14 @@ export const Checkout = () => {
     }
   };
 
-  const handlePaymentConfirmed = async (session: any, stripeData: any) => {
+  const handlePaymentConfirmed = async (
+    session: any,
+    stripeData: any,
+  ): Promise<void> => {
     if (!session) return;
 
-    const sessionId = session?.id;
-    const operatorUid = session?.operator_id;
+    const sessionId = session.id;
+    const operatorUid = session.operator_id;
     const riderUid = uid;
 
     if (!sessionId || !operatorUid) {
@@ -101,104 +104,116 @@ export const Checkout = () => {
       return;
     }
 
+    if (!stripeData?.clientSecret) {
+      Alert.alert('Error', 'Missing payment token');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const clientSecret = stripeData.clientSecret;
-
-      if (!clientSecret) {
-        throw new Error('Missing client secret');
-      }
-
+      /* ---------------- INIT STRIPE ---------------- */
       await initStripe({
         publishableKey: stripKey,
-        stripeAccountId: session?.stripeAccountId, // 🔥 KEY FIX
+        stripeAccountId: session.stripeAccountId,
       });
 
-      // Confirm payment
+      /* ---------------- CONFIRM PAYMENT ---------------- */
       const { error, paymentIntent } = await stripe.confirmPayment(
-        clientSecret,
-        { paymentMethodType: 'Card' },
+        stripeData.clientSecret,
+        {
+          paymentMethodType: 'Card',
+        },
       );
 
       if (error) {
-        Alert.alert('Payment failed', error.message || 'Try again');
-        console.log(error.message, "===@@@ payment error");
-        setLoading(false);
-        return;
+        throw new Error(error.message || 'Payment failed');
       }
 
-      if (!paymentIntent) {
-        setLoading(false);
+      if (!paymentIntent?.id) {
         throw new Error('Payment confirmation failed');
       }
 
-      let body = {
+      /* ---------------- FINALIZE BOOKING ---------------- */
+      const body = {
         sessionId,
         operatorUid,
-        riderUid: riderUid,
+        riderUid,
         paymentIntentId: paymentIntent.id,
+      };
+
+      const response = await apiCallMethod.finalizeBooking(body);
+
+      if (response?.status !== 200) {
+        throw new Error(response?.data?.error || 'Booking failed');
       }
-      const response = await apiCallMethod.finalizeBooking(body)
 
-      if (response.status == 200) {
+      /* ---------------- CALENDAR EVENT ---------------- */
+      try {
+        const permission = await RNCalendarEvents.requestPermissions();
 
-        Alert.alert('Success', 'Seat reserved successfully');
+        if (
+          permission === 'authorized' ||
+          permission === 'undetermined'
+        ) {
+          let startDate: Date;
 
-        try {
-          const permission = await RNCalendarEvents.requestPermissions();
+          if (typeof session?.timeStart?.toDate === 'function') {
+            startDate = session.timeStart.toDate();
+          } else {
+            startDate = new Date(session.timeStart);
+          }
 
-          if (permission === 'authorized') {
-            let startDate: Date;
+          if (isNaN(startDate.getTime())) {
+            throw new Error('Invalid start date');
+          }
 
-            if (!session?.timeStart) {
-              throw new Error('Invalid timeStart');
-            }
+          const duration = session?.durationMinutes || 60;
 
-            // Handle Firestore Timestamp
-            if (typeof session.timeStart?.toDate === 'function') {
-              startDate = session.timeStart.toDate();
-            } else {
-              startDate = new Date(session.timeStart);
-            }
+          const endDate = new Date(
+            startDate.getTime() + duration * 60000,
+          );
 
-            if (isNaN(startDate.getTime())) {
-              throw new Error('Invalid startDate format');
-            }
+          const lat = session?.location?.latitude;
+          const lng = session?.location?.longitude;
 
-            const duration = session?.durationMinutes || 0;
-            const endDate = new Date(startDate.getTime() + duration * 60000);
+          const mapLink = mapDirection(lat, lng);
 
-            const lat = session?.location?.latitude;
-            const lng = session?.location?.longitude;
+          const calendars = await RNCalendarEvents.findCalendars();
 
-            const mapLink = mapDirection(lat, lng);
+          const writableCalendar = calendars.find(
+            cal =>
+              cal.allowsModifications === true ||
+              cal.isPrimary === true,
+          );
 
-            await RNCalendarEvents.saveEvent('Boat Riding Session', {
+          await RNCalendarEvents.saveEvent(
+            `your ${session?.title} booked on ${new Date().toLocaleDateString()}`,
+            {
+              calendarId: writableCalendar?.id,
               startDate: startDate.toISOString(),
               endDate: endDate.toISOString(),
-              location: session?.locationDetails?.name,
+              location: session?.locationDetails?.name || '',
               notes: `Your booked session\n\nNavigate: ${mapLink}`,
-            });
-          } else {
-            Alert.alert('Please allow permission');
-          }
-        } catch (error) {
-          console.log(error, '===@@@ calender');
+            },
+          );
         }
-
-        navigation.navigate("bottom_tab")
-
-      } else {
-        console.log(response.data.error, '===@@@ finalizeResponse');
-        setLoading(false);
-        throw new Error(
-          response.data.error || 'Booking failed',
-        );
+      } catch (error) {
+        console.log('Calendar Error:', error);
       }
 
+      /* ---------------- SUCCESS UI ---------------- */
+      Alert.alert('Success', 'Seat reserved successfully');
+
+
+
+      navigation.navigate('bottom_tab');
     } catch (err: any) {
-      console.log(err.message);
-      Alert.alert('Error', err.message || 'Something went wrong');
-      setLoading(false);
+      console.log('Payment Error:', err);
+      Alert.alert(
+        'Error',
+        err?.message || 'Something went wrong',
+      );
     } finally {
       setLoading(false);
     }

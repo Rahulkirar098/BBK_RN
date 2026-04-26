@@ -96,8 +96,8 @@ export const RiderDashboard = () => {
   useEffect(() => {
     const q = query(
       collectionGroup(db, 'slots'),
-      where('status', '==', 'open'),
-      where('paymentStatus', '==', 'pending'),
+      // where('status', '==', 'open'),
+      // where('paymentStatus', '==', 'pending'),
     );
     const unsubscribe = onSnapshot(
       q,
@@ -297,8 +297,6 @@ export const RiderDashboard = () => {
         clientSecret,
         { paymentMethodType: 'Card' },
       );
-
-      console.log(paymentIntent);
 
       if (error) {
         Alert.alert('Payment failed', error.message || 'Try again');

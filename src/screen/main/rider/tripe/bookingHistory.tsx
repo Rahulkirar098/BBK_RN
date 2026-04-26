@@ -4,7 +4,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
+  Linking,
+  Platform,
+  Alert
 } from 'react-native';
 import {
   Calendar,
@@ -12,7 +14,6 @@ import {
   MapPin,
   CalendarPlus,
   Navigation,
-  Clock3,
   RotateCcw,
   Star,
 } from 'lucide-react-native';
@@ -24,6 +25,16 @@ import {
   verticalScale,
 } from '../../../../theme';
 
+import FastImage from 'react-native-fast-image';
+import { mapDirection } from '../../../../utils/common_logic';
+import { useNavigation } from '@react-navigation/native';
+
+import {
+  getFirestore,
+} from '@react-native-firebase/firestore';
+import { getAuth } from '@react-native-firebase/auth';
+import { getApp } from '@react-native-firebase/app';
+
 interface Props {
   bookings: any[];
   type?: 'upcoming' | 'past';
@@ -33,7 +44,46 @@ export const BookingHistory = ({
   bookings,
   type = 'upcoming',
 }: Props) => {
+
+    // Firebase //
+  const app = getApp();
+  const auth = getAuth(app);
+  const uid: any = auth.currentUser?.uid;
+
+  const navigation = useNavigation<any>();
+
   const isUpcoming = type === 'upcoming';
+
+  const openCalendarAtDate = (session: any) => {
+    let date: Date;
+    const raw = session?.timeStart;
+
+    if (raw?.toDate && typeof raw.toDate === 'function') {
+      date = raw.toDate();
+    } else if (raw?.seconds) {
+      date = new Date(raw.seconds * 1000);
+    } else {
+      date = new Date(raw);
+    }
+
+    if (isNaN(date.getTime())) {
+      Alert.alert('Invalid date');
+      return;
+    }
+
+    if (Platform.OS === 'ios') {
+      // Apple reference date = Jan 1, 2001
+      const appleEpochOffset = 978307200; // seconds between 1970 and 2001
+      const appleTimestamp =
+        Math.floor(date.getTime() / 1000) - appleEpochOffset;
+
+      Linking.openURL(`calshow:${appleTimestamp}`);
+    } else {
+      Linking.openURL(
+        `content://com.android.calendar/time/${date.getTime()}`
+      );
+    }
+  };
 
   return (
     <View>
@@ -81,7 +131,7 @@ export const BookingHistory = ({
         <View style={{ gap: verticalScale(16) }}>
           {bookings.map((session, index) => {
             const date = new Date(session.timeStart);
-
+            console.log(session, "===@@@")
             return (
               <View
                 key={`${session.id}-${index}`}
@@ -90,11 +140,13 @@ export const BookingHistory = ({
                 {/* TOP */}
                 <View style={styles.topRow}>
                   <View style={styles.sessionLeft}>
-                    <Image
+                    <FastImage
                       source={{
-                        uri: session.image,
+                        uri: session?.imageUrl,
+                        priority: FastImage.priority.high,
                       }}
                       style={styles.sessionImage}
+                      resizeMode={FastImage.resizeMode.cover}
                     />
 
                     <View style={{ flex: 1 }}>
@@ -103,7 +155,7 @@ export const BookingHistory = ({
                       </Text>
 
                       <Text style={styles.operatorName}>
-                        {session.operatorName}
+                        {session?.operator?.agencyName}
                       </Text>
 
                       <View style={styles.dateRow}>
@@ -136,32 +188,6 @@ export const BookingHistory = ({
                     </View>
                   </View>
 
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor:
-                          isUpcoming
-                            ? '#DCFCE7'
-                            : '#E5E7EB',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        {
-                          color: isUpcoming
-                            ? '#16A34A'
-                            : '#374151',
-                        },
-                      ]}
-                    >
-                      {isUpcoming
-                        ? 'CONFIRMED'
-                        : 'COMPLETED'}
-                    </Text>
-                  </View>
                 </View>
 
                 {/* LOCATION */}
@@ -174,7 +200,7 @@ export const BookingHistory = ({
                     style={styles.locationText}
                     numberOfLines={1}
                   >
-                    {session.meetingPoint}
+                    {session?.locationDetails?.name}
                   </Text>
                 </View>
 
@@ -182,25 +208,28 @@ export const BookingHistory = ({
                 {isUpcoming ? (
                   <View style={styles.buttonRow}>
                     <TouchableOpacity
-                      style={
-                        styles.secondaryButton
-                      }
+                      style={styles.secondaryButton}
+                      onPress={() => openCalendarAtDate(session)}
                     >
                       <CalendarPlus
                         size={14}
                         color={colors.primary}
                       />
-                      <Text
-                        style={
-                          styles.secondaryButtonText
-                        }
-                      >
+                      <Text style={styles.secondaryButtonText}>
                         Calendar
                       </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.primaryButton}
+                      onPress={() =>
+                        Linking.openURL(
+                          mapDirection(
+                            session?.location?.latitude,
+                            session?.location?.longitude,
+                          ),
+                        )
+                      }
                     >
                       <Navigation
                         size={14}
@@ -218,27 +247,13 @@ export const BookingHistory = ({
                 ) : (
                   <View style={styles.buttonRow}>
                     <TouchableOpacity
-                      style={
-                        styles.secondaryButton
-                      }
-                    >
-                      <RotateCcw
-                        size={14}
-                        color={
-                          colors.textPrimary
-                        }
-                      />
-                      <Text
-                        style={
-                          styles.secondaryButtonText
-                        }
-                      >
-                        Rebook
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
                       style={styles.primaryButton}
+                      onPress={() => {
+                        navigation.navigate("rating", {
+                          session: session,
+                          uid,
+                        });
+                      }}
                     >
                       <Star
                         size={14}
@@ -334,13 +349,13 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 14
   },
 
   sessionLeft: {
     flexDirection: 'row',
     gap: 12,
-    flex: 1,
+    flex: 1
   },
 
   sessionImage: {
@@ -388,7 +403,6 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 20,
   },
 
   statusText: {

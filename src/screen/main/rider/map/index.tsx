@@ -42,8 +42,9 @@ export const SessionMapScreen = () => {
   const app = getApp();
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const uid: any = auth.currentUser?.uid;
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   const mapRef = useRef<any>(null);
   const flatListRef = useRef<any>(null);
@@ -67,8 +68,8 @@ export const SessionMapScreen = () => {
     const a =
       Math.sin(dLat / 2) ** 2 +
       Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
 
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   };
@@ -288,7 +289,14 @@ export const SessionMapScreen = () => {
 
             <Text>📍 {item.locationDetails?.name}</Text>
 
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity style={styles.button}
+              onPress={() => {
+                navigation.navigate("session-booking", {
+                  session: item,
+                  uid: uid,
+                })
+              }}
+            >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>
                 Book Slot
               </Text>
