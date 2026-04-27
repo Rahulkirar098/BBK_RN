@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
-  TextInput,
   FlatList,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Image,
 } from 'react-native';
@@ -67,30 +65,6 @@ export const ChatScreen = () => {
 
     return () => unsub();
   }, []);
-
-  /* ================= SEND ================= */
-  const sendMessage = async () => {
-    if (!text.trim()) return;
-
-    const messageText = text.trim();
-    setText('');
-
-    const chatRef = firestore().collection('chats').doc(sessionId);
-
-    await chatRef.collection('messages').add({
-      text: messageText,
-      senderId: uid,
-      createdAt: firestore.FieldValue.serverTimestamp(),
-    });
-
-    await chatRef.set(
-      {
-        lastMessage: messageText,
-        lastMessageAt: firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-  };
 
   /* ================= HELPERS ================= */
 
@@ -222,9 +196,9 @@ export const ChatScreen = () => {
   };
 
   const renderMembersHeader = () => {
+    console.log(members,"===@@@")
     return (
       <View style={styles.membersHeader}>
-
         <FlatList
           data={members}
           horizontal
@@ -236,7 +210,7 @@ export const ChatScreen = () => {
                 source={{
                   uri:
                     item.photoURL ||
-                    'https://i.pravatar.cc/100',
+                    'https://i.pravatar.cc/100?img=7',
                 }}
                 style={styles.memberAvatar}
               />

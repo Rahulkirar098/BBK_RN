@@ -259,7 +259,7 @@ export const CreateSessionModal = ({
         paymentStatus: 'pending', // pending | captured | failed
         stripeAccountId: profile?.stripeAccountId,
 
-        operator: { ...operatorData?.userProfile, id: uid }
+        operator: { ...operatorData?.userProfile, id: uid, photoURL: operatorData?.operatorData }
       };
 
       // ✅ Save

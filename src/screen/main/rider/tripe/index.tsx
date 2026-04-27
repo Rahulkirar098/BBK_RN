@@ -19,7 +19,6 @@ import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 
 import { TripsHeader } from './header';
-import { StatsCards } from './stats';
 import { BookingHistory } from './bookingHistory';
 
 /* ---------------- REAL-TIME BOOKINGS LISTENER ---------------- */
@@ -56,7 +55,7 @@ const subscribeUserBookings = (
 
 /* ---------------- MAIN COMPONENT ---------------- */
 export const Trip = () => {
-  const navigation = useNavigation<any>();
+  // const navigation = useNavigation<any>();
 
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +75,7 @@ export const Trip = () => {
         setLoading(false);
       },
       () => {
-        setLoading(false); // 🔥 prevent infinite loading
+        setLoading(false);
       }
     );
 
@@ -141,6 +140,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: horizontalScale(20),
     gap: verticalScale(10),
+    paddingBottom: verticalScale(70)
   },
 
   center: {
