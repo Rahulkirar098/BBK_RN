@@ -4732,6 +4732,8 @@ DEPENDENCIES:
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
+  - SDWebImage
+  - SDWebImageWebPCoder
   - SocketRocket (~> 0.7.1)
   - "stripe-react-native (from `../node_modules/@stripe/stripe-react-native`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
@@ -5114,6 +5116,6 @@ SPEC CHECKSUMS:
   StripeUICore: bfe8754c2d78eeb0fc4ce147316a7e5129b58423
   Yoga: 33b53536a0500d039f2cd78caf1d5d68712d3af7
 
-PODFILE CHECKSUM: b962e2642fee391d711a94445c61b291cb13ce90
+PODFILE CHECKSUM: 2a1d461be04868cc60d7f19298634c6965871f92
 
 COCOAPODS: 1.16.2
