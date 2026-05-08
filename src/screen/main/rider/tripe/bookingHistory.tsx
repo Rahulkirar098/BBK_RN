@@ -131,7 +131,6 @@ export const BookingHistory = ({
         <View style={{ gap: verticalScale(16) }}>
           {bookings.map((session, index) => {
             const date = new Date(session.timeStart);
-            console.log(session, "Hello ===@@@")
             return (
               <View
                 key={`${session.id}-${index}`}
@@ -207,7 +206,7 @@ export const BookingHistory = ({
                 {/* ACTIONS */}
                 {isUpcoming ? (
                   <View style={styles.buttonRow}>
-                    <TouchableOpacity
+                    {session?.activityStatus !== "ended" && <TouchableOpacity
                       style={styles.secondaryButton}
                       onPress={() => {
                         navigation.navigate("chat", {
@@ -222,7 +221,7 @@ export const BookingHistory = ({
                       <Text style={styles.secondaryButtonText}>
                         Chat
                       </Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity>}
 
                     <TouchableOpacity
                       style={styles.secondaryButton}
@@ -263,22 +262,6 @@ export const BookingHistory = ({
                   </View>
                 ) : (
                   <View style={styles.buttonRow}>
-                    <TouchableOpacity
-                      style={styles.secondaryButton}
-                      onPress={() => {
-                        navigation.navigate("chat", {
-                          sessionId: session.slotId
-                        });
-                      }}
-                    >
-                      <MessageCircleIcon
-                        size={14}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.secondaryButtonText}>
-                        Chat
-                      </Text>
-                    </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.primaryButton}

@@ -16,8 +16,6 @@ import {
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-import { useNavigation } from '@react-navigation/native';
-
 import { TripsHeader } from './header';
 import { BookingHistory } from './bookingHistory';
 
@@ -55,7 +53,6 @@ const subscribeUserBookings = (
 
 /* ---------------- MAIN COMPONENT ---------------- */
 export const Trip = () => {
-  // const navigation = useNavigation<any>();
 
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

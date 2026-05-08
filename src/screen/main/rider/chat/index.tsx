@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 
 import firestore from '@react-native-firebase/firestore';
@@ -26,11 +27,28 @@ export const ChatScreen = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [text, setText] = useState('');
+  const [isChatAvailable, setIsChatAvailable] = useState(true);
 
   const flatListRef = useRef<any>(null);
 
+  /* ================= CHAT AVAILABILITY CHECK ================= */
+  useEffect(() => {
+    const unsub = firestore()
+      .collection('chats')
+      .doc(sessionId)
+      .onSnapshot(snap => {
+        setIsChatAvailable(snap.exists);
+      }, error => {
+        console.log('Chat availability error:', error);
+        setIsChatAvailable(false);
+      });
+
+    return () => unsub();
+  }, [sessionId]);
+
   /* ================= MEMBERS ================= */
   useEffect(() => {
+    if (!isChatAvailable) return;
     const unsub = firestore()
       .collection('chats')
       .doc(sessionId)
@@ -44,10 +62,12 @@ export const ChatScreen = () => {
       });
 
     return () => unsub();
-  }, []);
+  }, [isChatAvailable]);
 
   /* ================= MESSAGES ================= */
   useEffect(() => {
+    if (!isChatAvailable) return;
+    console.log('Chat available check - sessionId:', sessionId, 'Chat available:', !!sessionId);
     const unsub = firestore()
       .collection('chats')
       .doc(sessionId)
@@ -55,6 +75,7 @@ export const ChatScreen = () => {
       .orderBy('createdAt', 'desc') // ✅ IMPORTANT
       .limit(50)
       .onSnapshot(snap => {
+        console.log('Chat snapshot received - messages count:', snap.docs.length, 'Chat available:', snap.docs.length > 0);
         const list = snap.docs.map(d => ({
           id: d.id,
           ...d.data(),
@@ -64,7 +85,7 @@ export const ChatScreen = () => {
       });
 
     return () => unsub();
-  }, []);
+  }, [sessionId, isChatAvailable]);
 
   /* ================= HELPERS ================= */
 
@@ -195,8 +216,24 @@ export const ChatScreen = () => {
     );
   };
 
+  const renderChatUnavailable = () => {
+    return (
+      <View style={styles.unavailableContainer}>
+        <Text style={styles.unavailableTitle}>Chat Not Available</Text>
+        <Text style={styles.unavailableSubtitle}>
+          This chat has been deleted or is no longer available.
+        </Text>
+        <TouchableOpacity
+          style={styles.goHomeButton}
+          onPress={() => navigation.navigate('bottom_tab')}
+        >
+          <Text style={styles.goHomeButtonText}>Go Back to Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderMembersHeader = () => {
-    console.log(members,"===@@@")
     return (
       <View style={styles.membersHeader}>
         <FlatList
@@ -234,9 +271,11 @@ export const ChatScreen = () => {
       <View style={styles.container}>
         <ScreenHeader title="Chat" onBack={() => navigation.goBack()} />
 
-        {renderMembersHeader()}
+        {!isChatAvailable ? renderChatUnavailable() : (
+          <>
+            {renderMembersHeader()}
 
-        <FlatList
+            <FlatList
           ref={flatListRef}
           data={messages}
           inverted
@@ -245,8 +284,10 @@ export const ChatScreen = () => {
           contentContainerStyle={{ padding: 10 }}
         />
 
-        {/* INPUT */}
-        <ChatInput sessionId={sessionId} />
+            {/* INPUT */}
+            <ChatInput sessionId={sessionId} />
+          </>
+        )}
       </View>
     </SafeAreaView>
 
@@ -375,5 +416,39 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 4,
     alignSelf: 'flex-end',
+  },
+
+  unavailableContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+
+  unavailableTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+
+  unavailableSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+
+  goHomeButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+
+  goHomeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

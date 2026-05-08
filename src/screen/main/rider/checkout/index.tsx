@@ -35,10 +35,6 @@ import { useStripe, initStripe, CardField } from '@stripe/stripe-react-native';
 import { stripKey } from '../../../../config';
 
 
-// ---------- firestore ---------- //
-import firestore from '@react-native-firebase/firestore';
-
-
 export const Checkout = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();

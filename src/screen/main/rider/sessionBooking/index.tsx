@@ -23,7 +23,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, ScreenHeader } from '../../../../components/atoms';
 import { WaiverModal } from '../../../../components/modals';
 
-
 const renderStars = (avg: number) => {
   return Array.from({ length: 5 }).map((_, i) => {
     const starValue = i + 1;
@@ -175,7 +174,7 @@ export const SessionBooking = () => {
     !isBooked &&
     !isPast;
 
-  const isEnded = session?.activityStatus === 'ended';
+  const isEnded = sessionData?.activityStatus === 'ended';
 
   // Book session logic
   const handleBookSession = async () => {
@@ -371,7 +370,7 @@ export const SessionBooking = () => {
           </View>
         </View>
 
-        {canBook && (
+        {canBook && !isEnded && (
           <>
             <Text style={styles.footerNote}>
               No charge until session is confirmed.

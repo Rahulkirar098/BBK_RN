@@ -13,6 +13,7 @@ import { X } from 'lucide-react-native';
 import FastImage from 'react-native-fast-image';
 
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 
 import {
   colors,
@@ -24,6 +25,8 @@ import { formatDate, mapDirection } from '../../utils/common_logic';
 import { apiCallMethod } from '../../api/apiCallMethod';
 import { Accordion, ActionButton } from '../atoms';
 import { SessionActivityStatus } from '../../type';
+
+import { useNavigation } from '@react-navigation/native';
 
 interface Props {
   visible: boolean;
@@ -50,6 +53,8 @@ export const SessionDetailModal: React.FC<Props> = ({
   setSession,
 }) => {
   if (!session) return null;
+
+  const navigation = useNavigation<any>();
 
   const {
     id,
@@ -161,11 +166,40 @@ export const SessionDetailModal: React.FC<Props> = ({
   ) => {
     if (!session?.id) return;
 
-    await firestore().collection('slots').doc(session.id).update({
+    const sessionRef = firestore()
+      .collection('slots')
+      .doc(session.id);
+
+    /* =========================================================
+       ✅ UPDATE MAIN SESSION
+    ========================================================= */
+    await sessionRef.update({
       activityStatus: status,
       ...extra,
     });
 
+    /* =========================================================
+       ✅ UPDATE GLOBAL BOOKINGS COLLECTION
+    ========================================================= */
+    const bookingsSnap = await firestore()
+      .collection('bookings')
+      .where('slotId', '==', session.id)
+      .get();
+
+    const batch = firestore().batch();
+
+    bookingsSnap.docs.forEach(doc => {
+      batch.update(doc.ref, {
+        activityStatus: status,
+        ...extra,
+      });
+    });
+
+    await batch.commit();
+
+    /* =========================================================
+       ✅ UPDATE LOCAL STATE
+    ========================================================= */
     setSession((prev: any) => ({
       ...prev,
       activityStatus: status,
@@ -255,15 +289,80 @@ export const SessionDetailModal: React.FC<Props> = ({
 
       const endTime = firestore.Timestamp.now();
 
+      /* =========================================================
+         ✅ UPDATE SESSION STATUS
+      ========================================================= */
       await updateSessionStatus(SessionActivityStatus.ENDED, {
         activityEndedAt: endTime,
       });
+
+      const chatRef = firestore()
+        .collection('chats')
+        .doc(session.id);
+
+      /* =========================================================
+         ✅ GET CHAT DATA
+      ========================================================= */
+      const [messagesSnap, membersSnap] = await Promise.all([
+        chatRef.collection('messages').get(),
+        chatRef.collection('members').get(),
+      ]);
+
+      /* =========================================================
+         ✅ DELETE CHAT IMAGES FROM STORAGE
+      ========================================================= */
+      for (const doc of messagesSnap.docs) {
+        const data = doc.data();
+
+        // 🔥 image message
+        if (data?.imageUrl) {
+          try {
+            const imageRef = storage().refFromURL(data.imageUrl);
+
+            await imageRef.delete();
+
+            console.log('✅ Deleted image:', data.imageUrl);
+          } catch (err) {
+            console.log('❌ Failed image delete:', err);
+          }
+        }
+      }
+
+      /* =========================================================
+         ✅ DELETE FIRESTORE CHAT
+      ========================================================= */
+      const batch = firestore().batch();
+
+      // 🔥 delete messages
+      messagesSnap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // 🔥 delete members
+      membersSnap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // 🔥 delete main chat
+      batch.delete(chatRef);
+
+      await batch.commit();
+
+      console.log('✅ Chat deleted successfully');
+
     } catch (error) {
-      console.log(error);
+      console.log('❌ handleEndActivity error:', error);
     } finally {
       setEndLoading(false);
     }
   };
+
+  const handleNavigateToChat = (sessionId: string) => {
+    navigation.navigate("chat", {
+      sessionId
+    });
+    onClose();
+  }
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -333,6 +432,13 @@ export const SessionDetailModal: React.FC<Props> = ({
                 </Text>
               </View>
             </View>
+
+            {!canClaim && (
+              <ActionButton
+                title="Chat with Riders"
+                onPress={() => handleNavigateToChat(id)}
+              />
+            )}
 
             {/* SESSION INFO */}
             <Accordion title="Session Info">
@@ -427,7 +533,6 @@ export const SessionDetailModal: React.FC<Props> = ({
                 })
               )}
             </Accordion>
-
 
             {/* Actions */}
             {session?.activityStatus === SessionActivityStatus.STARTED &&
