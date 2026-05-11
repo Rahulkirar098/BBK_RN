@@ -6,6 +6,6 @@ const baseUrl =
   Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
 export const instance = axios.create({
-  baseURL: baseUrl,
+  baseURL: liveURL,
   headers: { 'Content-Type': 'application/json' },
 });
