@@ -21,7 +21,7 @@ import FastImage from 'react-native-fast-image';
 import { formatDuration, mapDirection, getTimeOfDayInfo, formatDate } from '../../../../utils/common_logic';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, ScreenHeader } from '../../../../components/atoms';
-import { WaiverModal } from '../../../../components/modals';
+import { SeatCountModal, WaiverModal } from '../../../../components/modals';
 
 const renderStars = (avg: number) => {
   return Array.from({ length: 5 }).map((_, i) => {
@@ -55,14 +55,17 @@ export const SessionBooking = () => {
 
   const progressPercent = (session.bookedSeats / session.totalSeats) * 100;
 
-  // ---------- STATE ----------
+  // ---------- STATE ---------- //
   const [sessionData, setSessionData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isBooked, setIsBooked] = useState(false);
   const [showWaiverModal, setShowWaiverModal] = useState(false);
 
   const [signature, setSignature] = useState('');
   const [hasScrolled, setHasScrolled] = useState(false);
+
+  // ---------- Seat Count Modal State ---------- //
+  const [isSeatCountModalVisible, setIsSeatCountModalVisible] = useState(false);
+  const [seatsCount, setSeatsCount] = useState(0);
 
   const [checks, setChecks] = useState({
     risks: false,
@@ -132,27 +135,6 @@ export const SessionBooking = () => {
     return () => unsubscribe();
   }, [session?.id]);
 
-  // ---------- BOOKING LISTENER ----------
-  useEffect(() => {
-    if (!sessionData?.id) return;
-
-    const unsubscribe = firestore()
-      .collection('slots')
-      .doc(sessionData.id)
-      .collection('booking')
-      .onSnapshot(snapshot => {
-        const list = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        const alreadyBooked = list.some((r: any) => r.id === uid);
-        setIsBooked(alreadyBooked);
-      });
-
-    return () => unsubscribe();
-  }, [sessionData?.id]);
-
   // ---------- LOADING UI ----------
   if (loading || !sessionData) {
     return (
@@ -170,33 +152,27 @@ export const SessionBooking = () => {
 
   // ✅ Determine booking & direction logic
   const canBook =
-    (sessionData?.status === 'open' || sessionData?.status === 'min_reached') &&
-    !isBooked &&
-    !isPast;
+    (sessionData?.status === 'open' || sessionData?.status === 'min_reached') && !isPast;
 
   const isEnded = sessionData?.activityStatus === 'ended';
 
   // Book session logic
   const handleBookSession = async () => {
-    if (sessionData) {
-      const storedUser = await AsyncStorage.getItem('bbs_user');
-      if (!storedUser) throw new Error('User not logged in');
-
-      const user = JSON.parse(storedUser);
-      let isUser = sessionData?.ridersProfile?.filter(
-        (item: any) => item?.uid == user?.uid,
-      );
-
-      if (isUser?.length) {
-        Alert.alert('You have already booked this session');
-        return;
-      } else {
-        setShowWaiverModal(true);
-      }
-    }
+    setIsSeatCountModalVisible(true);
   };
 
-  // Waiver logic
+  // ---------- SEAT COUNT MODAL ---------- //
+  const handleSeatCountModalClose = () => {
+    setIsSeatCountModalVisible(false);
+  };
+
+  const handleSeatCountConfirm = (count: number) => {
+    setSeatsCount(count);
+    setIsSeatCountModalVisible(false);
+    setShowWaiverModal(true);
+  };
+
+  // ---------- WAIVER LOGIC ---------- //
   const handleWaiverClear = () => {
     setSignature('');
     setHasScrolled(false);
@@ -304,7 +280,7 @@ export const SessionBooking = () => {
           </View>
         </View>
 
-        {isBooked && isEnded && !alreadyRated && (<TouchableOpacity style={styles.infoCard}
+        {isEnded && !alreadyRated && (<TouchableOpacity style={styles.infoCard}
           onPress={() => {
             navigation.navigate("rating", {
               session: sessionData,
@@ -386,7 +362,7 @@ export const SessionBooking = () => {
         )}
 
         {/* Show direction ONLY if user already booked */}
-        {isBooked && !isEnded && (
+        {!isEnded && (
           <TouchableOpacity
             onPress={() =>
               Linking.openURL(
@@ -402,6 +378,13 @@ export const SessionBooking = () => {
         )}
       </ScrollView>
 
+      <SeatCountModal
+        visible={isSeatCountModalVisible}
+        onClose={handleSeatCountModalClose}
+        session={sessionData}
+        onConfirm={handleSeatCountConfirm}
+      />
+
       <WaiverModal
         visible={showWaiverModal}
         onClose={() => {
@@ -413,6 +396,7 @@ export const SessionBooking = () => {
           navigation.navigate("checkout", {
             session: sessionData,
             uid: uid,
+            seatsCount
           });
         }}
         signature={signature}
@@ -573,5 +557,5 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginTop: 6,
     fontWeight: '600',
-  },
+  }
 });

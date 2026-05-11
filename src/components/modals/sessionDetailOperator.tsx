@@ -504,28 +504,28 @@ export const SessionDetailModal: React.FC<Props> = ({
               ) : bookings.length === 0 ? (
                 <Text>No riders yet</Text>
               ) : (
-                bookings.map((r: any) => {
+                bookings.map((item: any) => {
                   return (
-                    <View key={r.id} style={styles.riderCard}>
+                    <View key={item.id} style={styles.riderCard}>
                       <View style={styles.riderRow}>
                         <FastImage
                           source={{
                             uri:
-                              r.photoURL || 'https://via.placeholder.com/100',
+                              item?.rider?.photoURL || 'https://via.placeholder.com/100',
                           }}
                           style={styles.avatar}
                         />
 
                         <View style={{ flex: 1 }}>
                           <Text style={styles.riderName}>
-                            {r.displayName || r.name || 'Unknown'}
+                            {item?.rider?.displayName || item?.rider?.name || 'Unknown'}
                           </Text>
 
-                          {r.email && (
-                            <Text style={styles.riderSub}>{r.email}</Text>
+                          {item?.rider?.email && (
+                            <Text style={styles.riderSub}>{item?.rider?.email}</Text>
                           )}
 
-                          <Text style={styles.riderStatus}>{r.status}</Text>
+                          <Text style={styles.riderStatus}>{item.status}</Text>
                         </View>
                       </View>
                     </View>

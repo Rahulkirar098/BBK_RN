@@ -17,6 +17,7 @@ export const apiCallMethod = {
     operatorUid: string;
     riderUid: string;
     operatorStripeAccountId: string;
+    seatsCount: number;
   }) => {
     return instance.post(paymentIntent.createPaymentIntent, payload);
   },
@@ -32,6 +33,7 @@ export const apiCallMethod = {
     operatorUid: string;
     riderUid: string;
     paymentIntentId: string;
+    seatsCount: number;
   }) => {
     return instance.post(allEndpoints.finalizeBooking, payload);
   },

@@ -27,7 +27,7 @@ import { Map } from 'lucide-react-native';
 import Header from './header';
 import SearchBar from './search';
 import TimeFilterBar from './timeLineTabs';
-import { SessionCardRider } from '../../../../components/molicules';
+import { SessionCardRider, EmptySessionCard } from '../../../../components/molicules';
 import {
   PaymentModal,
   SessionDetailsRider,
@@ -446,6 +446,12 @@ export const RiderDashboard = () => {
               })
             }}
             uid={uid}
+          />
+        )}
+        ListEmptyComponent={() => (
+          <EmptySessionCard
+            title="No Sessions Available"
+            subtitle={`There are no sessions available for ${selectedTab === 'NOW' ? 'today' : selectedTab === 'TOMORROW' ? 'tomorrow' : 'this week'}. Please check back later or try a different time filter.`}
           />
         )}
       />

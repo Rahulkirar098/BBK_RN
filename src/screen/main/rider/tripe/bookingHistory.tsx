@@ -28,6 +28,7 @@ import {
 import FastImage from 'react-native-fast-image';
 import { mapDirection } from '../../../../utils/common_logic';
 import { useNavigation } from '@react-navigation/native';
+import { EmptySessionCard } from '../../../../components/molicules';
 
 import {
   getFirestore,
@@ -98,35 +99,12 @@ export const BookingHistory = ({
 
       {/* EMPTY */}
       {bookings.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <View style={styles.emptyIconBox}>
-            <Calendar size={28} color={colors.gray400} />
-          </View>
-
-          <Text style={styles.emptyTitle}>
-            {isUpcoming
-              ? 'No upcoming trips'
-              : 'No previous bookings'}
-          </Text>
-
-          <Text style={styles.emptySubtitle}>
-            {isUpcoming
-              ? "You don't have any scheduled sessions."
-              : 'Completed bookings will appear here.'}
-          </Text>
-
-          {isUpcoming && (
-            <TouchableOpacity style={styles.exploreButton}>
-              <Text style={styles.exploreText}>
-                Explore Sessions
-              </Text>
-              <ArrowRight
-                size={16}
-                color={colors.white}
-              />
-            </TouchableOpacity>
-          )}
-        </View>
+        <EmptySessionCard
+          title={isUpcoming ? 'No upcoming trips' : 'No previous bookings'}
+          subtitle={isUpcoming ? "You don't have any scheduled sessions." : 'Completed bookings will appear here.'}
+          buttonText={isUpcoming ? 'Explore Sessions' : undefined}
+          onPress={isUpcoming ? () => navigation.navigate('bottom_tab') : undefined}
+        />
       ) : (
         <View style={{ gap: verticalScale(16) }}>
           {bookings.map((session, index) => {

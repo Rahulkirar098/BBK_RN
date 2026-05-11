@@ -94,7 +94,6 @@ export const SessionDetailsRider: React.FC<SessionDetailsRiderProps> = ({
 
   const [rating, setRating] = useState<number>(1);
 
-
   return (
     <Modal
       visible={visible}

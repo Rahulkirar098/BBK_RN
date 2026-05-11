@@ -33,14 +33,13 @@ import { mapDirection } from '../../../../utils/common_logic';
 // ---------- Stripe ---------- //
 import { useStripe, initStripe, CardField } from '@stripe/stripe-react-native';
 import { stripKey } from '../../../../config';
+import { SessionActivityStatus } from '../../../../type';
 
 
 export const Checkout = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { session, uid } = route.params;
-
-  const { createPaymentMethod } = useStripe();
+  const { session, uid, seatsCount } = route.params;
 
   const [loading, setLoading] = useState(false);
   const [isCardComplete, setIsCardComplete] = useState(false);
@@ -56,6 +55,17 @@ export const Checkout = () => {
         return;
       }
 
+      if (
+        session?.activityStatus === SessionActivityStatus.STARTED ||
+        session?.activityStatus === SessionActivityStatus.ENDED
+      ) {
+        Alert.alert(
+          'Booking Closed',
+          'This session is no longer accepting bookings',
+        );
+        return;
+      }
+
       setLoading(true);
 
       const storedUser = await AsyncStorage.getItem('bbs_user');
@@ -68,6 +78,7 @@ export const Checkout = () => {
         operatorUid: session?.operator_id,
         riderUid: user?.uid,
         operatorStripeAccountId: session?.stripeAccountId,
+        seatsCount
       });
 
       if (response.status == 200) {
@@ -79,7 +90,7 @@ export const Checkout = () => {
         );
       }
     } catch (err: any) {
-      console.error(err?.response?.data?.error);
+      console.error(err?.response?.data?.error,"===@@@",err?.response,"===@@@");
       Alert.alert('Error', err?.response?.data?.error || 'Something went wrong');
       setLoading(false);
     }
@@ -136,6 +147,7 @@ export const Checkout = () => {
         operatorUid,
         riderUid,
         paymentIntentId: paymentIntent.id,
+        seatsCount,
       };
 
       const response = await apiCallMethod.finalizeBooking(body);
@@ -201,11 +213,10 @@ export const Checkout = () => {
       /* ---------------- SUCCESS UI ---------------- */
       Alert.alert('Success', 'Seat reserved successfully');
 
-
-
       navigation.navigate('bottom_tab');
     } catch (err: any) {
-      console.log('Payment Error:', err);
+      console.log('Payment Error:', err,"===@@@");
+      console.log('Payment Error:', err?.response,"===@@@");
       Alert.alert(
         'Error',
         err?.message || 'Something went wrong',
@@ -228,7 +239,7 @@ export const Checkout = () => {
           <View>
             <Text style={styles.totalLabel}>TOTAL</Text>
             <Text style={styles.totalPrice}>
-              {session?.currency} {session?.pricePerSeat}
+              {session?.currency} {session?.pricePerSeat * seatsCount}
             </Text>
           </View>
         </View>
