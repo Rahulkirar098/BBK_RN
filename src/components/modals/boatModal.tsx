@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Image,
   Alert,
 } from 'react-native';
 
@@ -22,14 +21,15 @@ import {
 
 import { Button, Input, Select } from '../atoms';
 import { pickImageFromGallery } from '../../utils/common_logic';
-import ImageResizer from 'react-native-image-resizer';
 import { statusOptions } from '../../utils';
 
 // Firebase
 import { getApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
-import firestore, { getFirestore, serverTimestamp } from '@react-native-firebase/firestore';
-import storage from '@react-native-firebase/storage';
+import { getFirestore, serverTimestamp } from '@react-native-firebase/firestore';
+import { apiCallMethod } from '../../api/apiCallMethod';
+
+import FastImage from 'react-native-fast-image';
 
 const emptyBoat: any = {
   operator_id: '',
@@ -61,35 +61,36 @@ export const BoatManagerModal = ({
   // IMAGE PICK
   const handlePickImage = async () => {
     const asset = await pickImageFromGallery();
-
     if (!asset?.uri) return;
-
-    const compressed = await ImageResizer.createResizedImage(
-      asset.uri,
-      800,
-      800,
-      'JPEG',
-      70,
-    );
-
-    setBoat({
-      ...boat,
-      imageUrl: compressed.uri,
-    });
+    setBoat((prev: any) => ({
+      ...prev,
+      imageUrl: asset.uri,
+      _imageAsset: asset,
+    }));
   };
 
   // IMAGE UPLOAD
-  const uploadImage = async (uri: string, path: string) => {
+  const uploadImageToServer = async () => {
     try {
-      const uploadUri = uri.replace('file://', '');
+      const uri = boat.imageUrl;
+      const asset = boat._imageAsset;
+      const fileName = asset?.fileName || `photo_${Date.now()}.jpg`;
+      const type = asset?.type || 'image/jpeg';
 
-      const reference = storage().ref(path);
+      const formData = new FormData();
+      formData.append('image', {
+        uri,
+        name: fileName,
+        type,
+      } as any);
+      formData.append('path', 'boats');
 
-      await reference.putFile(uploadUri);
+      const response: any = await apiCallMethod.uploadImage(formData);
 
-      const url = await reference.getDownloadURL();
-
-      return url;
+      if (response?.url) {
+        return response?.url;
+      }
+      return '';
     } catch (error) {
       console.log('Upload error:', error);
       return '';
@@ -118,8 +119,7 @@ export const BoatManagerModal = ({
       let imageUrl = boat.imageUrl;
 
       if (boat.imageUrl && boat.imageUrl.startsWith('file')) {
-        const path = `boats/${uid}/${Date.now()}.jpg`;
-        imageUrl = await uploadImage(boat.imageUrl, path);
+        imageUrl = await uploadImageToServer();
       }
 
       const payload = {
@@ -130,9 +130,11 @@ export const BoatManagerModal = ({
       };
 
       if (boat.id) {
-        await firestore().collection('boats').doc(boat.id).update(payload);
+        const response = await apiCallMethod.editBoat(boat.id, payload);
+        console.log('Boat updated:', response);
       } else {
-        await firestore().collection('boats').add(payload);
+        const response = await apiCallMethod.createBoat(payload);
+        console.log('Boat created:', response);
       }
 
       setEditingBoat(false);
@@ -250,10 +252,15 @@ export const BoatManagerModal = ({
               />
 
               {boat.imageUrl !== '' && (
-                <Image
-                  source={{ uri: boat.imageUrl }}
+                <FastImage
+                  source={{
+                    uri: boat.imageUrl,
+                    priority: FastImage.priority.normal,
+                  }}
+                  resizeMode={FastImage.resizeMode.contain}
                   style={styles.preview}
                 />
+
               )}
 
               <Button label="Pick Image" onPress={handlePickImage} />

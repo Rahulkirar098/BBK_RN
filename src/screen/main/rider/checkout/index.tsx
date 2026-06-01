@@ -29,11 +29,10 @@ import PaymentCardPreview from './cardDesign';
 import RNCalendarEvents from 'react-native-calendar-events';
 import { mapDirection } from '../../../../utils/common_logic';
 
-
 // ---------- Stripe ---------- //
 import { useStripe, initStripe, CardField } from '@stripe/stripe-react-native';
 import { stripKey } from '../../../../config';
-import { SessionActivityStatus } from '../../../../type';
+import { SessionActivityStatus } from '../../../../types';
 
 
 export const Checkout = () => {
@@ -80,17 +79,8 @@ export const Checkout = () => {
         operatorStripeAccountId: session?.stripeAccountId,
         seatsCount
       });
-
-      if (response.status == 200) {
-        let data = response.data;
-        handlePaymentConfirmed(session, data);
-      } else {
-        throw new Error(
-          response.data.error || 'Failed to create payment intent',
-        );
-      }
+      handlePaymentConfirmed(session, response);
     } catch (err: any) {
-      console.error(err?.response?.data?.error,"===@@@",err?.response,"===@@@");
       Alert.alert('Error', err?.response?.data?.error || 'Something went wrong');
       setLoading(false);
     }
@@ -150,11 +140,7 @@ export const Checkout = () => {
         seatsCount,
       };
 
-      const response = await apiCallMethod.finalizeBooking(body);
-
-      if (response?.status !== 200) {
-        throw new Error(response?.data?.error || 'Booking failed');
-      }
+      await apiCallMethod.finalizeBooking(body);
 
       /* ---------------- CALENDAR EVENT ---------------- */
       try {
@@ -215,8 +201,8 @@ export const Checkout = () => {
 
       navigation.navigate('bottom_tab');
     } catch (err: any) {
-      console.log('Payment Error:', err,"===@@@");
-      console.log('Payment Error:', err?.response,"===@@@");
+      console.log('Payment Error:', err, "===@@@");
+      console.log('Payment Error:', err?.response, "===@@@");
       Alert.alert(
         'Error',
         err?.message || 'Something went wrong',

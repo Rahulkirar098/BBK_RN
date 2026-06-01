@@ -5,8 +5,9 @@ export const language = [
 ];
 
 export const statusOptions = [
-  { label: 'Active', value: 'Active' },
-  { label: 'Inactive', value: 'Inactive' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Approved', value: 'APPROVED' },
+  { label: 'Rejected', value: 'REJECTED' },
 ];
 
 export const AddSlotOptions = [

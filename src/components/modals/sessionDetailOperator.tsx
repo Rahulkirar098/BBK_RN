@@ -24,7 +24,7 @@ import {
 import { formatDate, mapDirection } from '../../utils/common_logic';
 import { apiCallMethod } from '../../api/apiCallMethod';
 import { Accordion, ActionButton } from '../atoms';
-import { SessionActivityStatus } from '../../type';
+import { SessionActivityStatus } from '../../types';
 
 import { useNavigation } from '@react-navigation/native';
 

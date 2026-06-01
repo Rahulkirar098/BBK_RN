@@ -41,7 +41,7 @@ import {
   setDoc,
 } from '@react-native-firebase/firestore';
 
-import { ActiveStatus, SESSION_STATUS } from '../../../../type';
+import { ActiveStatus, SESSION_STATUS } from '../../../../types';
 
 import {
   CreateSessionModal,

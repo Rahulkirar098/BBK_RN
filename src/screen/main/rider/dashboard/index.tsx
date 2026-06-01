@@ -17,7 +17,7 @@ import {
   typography,
   verticalScale,
 } from '../../../../theme';
-import { TimeFilter } from '../../../../type';
+import { TimeFilter } from '../../../../types';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

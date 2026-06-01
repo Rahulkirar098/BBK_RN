@@ -4,12 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Modal,
   Image,
   Alert,
   TextInput,
 } from 'react-native';
+
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import DatePicker from 'react-native-date-picker';
 
@@ -41,7 +42,7 @@ import {
 import storage from '@react-native-firebase/storage';
 
 import { pickImageFromGallery } from '../../utils/common_logic';
-import { SESSION_STATUS, SessionActivityStatus } from '../../type';
+import { SESSION_STATUS, SessionActivityStatus, SessionPaymentStatus } from '../../types';
 import { googleApiKey } from '../../config';
 
 const getPlaceImage = (locationDetails: any) => {
@@ -256,7 +257,7 @@ export const CreateSessionModal = ({
         createdAt: serverTimestamp(),
         operator_id: uid,
 
-        paymentStatus: 'pending', // pending | captured | failed
+        paymentStatus: SessionPaymentStatus.PENDING, // pending | captured | failed
         stripeAccountId: profile?.stripeAccountId,
 
         operator: { ...operatorData?.userProfile, id: uid, photoURL: operatorData?.photoURL }
@@ -303,7 +304,7 @@ export const CreateSessionModal = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView showsVerticalScrollIndicator={false} enableOnAndroid={true} extraScrollHeight={20}>
             <Input
               placeholder="Session title"
               value={form.title}
@@ -460,7 +461,7 @@ export const CreateSessionModal = ({
               onPress={handleSubmit}
               disabled={isUploading}
             />
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
       </View>
 

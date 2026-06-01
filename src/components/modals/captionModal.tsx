@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Image,
   Alert,
 } from 'react-native';
 
@@ -21,10 +20,8 @@ import {
 } from '../../theme';
 
 import { pickImageFromGallery } from '../../utils/common_logic';
-import ImageResizer from 'react-native-image-resizer';
 
 import { statusOptions, language } from '../../utils';
-
 // Firebase
 import { getApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
@@ -37,7 +34,8 @@ import {
   serverTimestamp,
 } from '@react-native-firebase/firestore';
 
-import storage from '@react-native-firebase/storage';
+import { apiCallMethod } from '../../api/apiCallMethod';
+import FastImage from 'react-native-fast-image';
 
 const emptyCaptain = {
   name: '',
@@ -48,10 +46,9 @@ const emptyCaptain = {
   phone_no: '',
 };
 
-export const CaptainManagerModal = ({ visible, onClose, data, handleDelete }: any) => {
+export const CaptainManagerModal = ({ visible, onClose, data }: any) => {
   const app = getApp();
   const auth = getAuth(app);
-  const db = getFirestore(app);
 
   const uid = auth.currentUser?.uid;
 
@@ -62,33 +59,36 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleDelete }: an
   // IMAGE PICK
   const handlePickImage = async () => {
     const asset = await pickImageFromGallery();
-
     if (!asset?.uri) return;
-
-    const compressed = await ImageResizer.createResizedImage(
-      asset.uri,
-      800,
-      800,
-      'JPEG',
-      70,
-    );
-
-    setCaptain({
-      ...captain,
-      imageUrl: compressed.uri,
-    });
+    setCaptain((prev: any) => ({
+      ...prev,
+      imageUrl: asset.uri,
+      _imageAsset: asset,
+    }));
   };
 
   // IMAGE UPLOAD
-  const uploadImage = async (uri: string, path: string) => {
+  const uploadImageToServer = async () => {
     try {
-      const uploadUri = uri.replace('file://', '');
-      const reference = storage().ref(path);
+      const uri = captain.imageUrl;
+      const asset = captain._imageAsset;
+      const fileName = asset?.fileName || `photo_${Date.now()}.jpg`;
+      const type = asset?.type || 'image/jpeg';
 
-      await reference.putFile(uploadUri);
+      const formData = new FormData();
+      formData.append('image', {
+        uri,
+        name: fileName,
+        type,
+      } as any);
+      formData.append('path', 'captains');
 
-      const url = await reference.getDownloadURL();
-      return url;
+      const response: any = await apiCallMethod.uploadImage(formData);
+
+      if (response?.url) {
+        return response?.url;
+      }
+      return '';
     } catch (error) {
       console.log('Upload error:', error);
       return '';
@@ -117,30 +117,49 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleDelete }: an
       let imageUrl = captain.imageUrl;
 
       if (imageUrl?.startsWith('file')) {
-        const path = `captains/${uid}/${Date.now()}.jpg`;
-        imageUrl = await uploadImage(imageUrl, path);
+        imageUrl = await uploadImageToServer();
+        console.log('Uploaded image URL:', imageUrl);
       }
 
       const payload = {
         ...captain,
         imageUrl,
         operator_id: uid,
-        createdAt: serverTimestamp(),
       };
 
       if (captain.id) {
-        await updateDoc(doc(db, 'captains', captain.id), payload);
+        const response = await apiCallMethod.editCaptain(captain.id, payload);
+        console.log('Captain updated:', response);
       } else {
-        await addDoc(collection(db, 'captains'), payload);
+        const response = await apiCallMethod.createCaptain(payload);
+        console.log('Captain created:', response);
       }
 
       setEditingCaptain(null);
       setCaptain(emptyCaptain);
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert('Save Captain Error', String(error));
+      console.log(error?.response)
     }
 
     setUploading(false);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    Alert.alert('Delete Captain', `Delete ${name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiCallMethod.deleteCaptain(id);
+          } catch (error) {
+            console.log('Delete error:', error);
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -161,30 +180,31 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleDelete }: an
                 </View>
               }
 
-              renderItem={({ item }) => (
-                <View style={styles.itemRow}>
-                  <Text>{item.name}</Text>
+              renderItem={({ item }) => {
+                return (
+                  <View style={styles.itemRow}>
+                    <Text>{item.name}</Text>
 
-                  <View style={styles.iconRow}>
-                    <TouchableOpacity onPress={() => handleEdit(item)}>
-                      <Pencil size={18} />
-                    </TouchableOpacity>
+                    <View style={styles.iconRow}>
+                      <TouchableOpacity onPress={() => handleEdit(item)}>
+                        <Pencil size={18} />
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      onPress={() => handleDelete(item.id, item.name)}
-                    >
-                      <Trash2 size={18} />
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDelete(item.id, item.name)}
+                      >
+                        <Trash2 size={18} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              )}
+                )
+              }}
 
               ListFooterComponent={
                 <Button label="Add Captain" onPress={handleCreate} />
               }
             />
           ) : (
-
             <KeyboardAwareScrollView
               enableOnAndroid
               keyboardShouldPersistTaps="handled"
@@ -238,8 +258,13 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleDelete }: an
               />
 
               {captain.imageUrl !== '' && (
-                <Image
-                  source={{ uri: captain.imageUrl }}
+                <FastImage
+                  source={{
+                    uri: captain.imageUrl,
+                    priority: FastImage.priority.normal,
+
+                  }}
+                  resizeMode={FastImage.resizeMode.contain}
                   style={styles.preview}
                 />
               )}
@@ -253,7 +278,6 @@ export const CaptainManagerModal = ({ visible, onClose, data, handleDelete }: an
               />
 
             </KeyboardAwareScrollView>
-
           )}
 
         </View>

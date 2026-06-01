@@ -9,8 +9,6 @@ import {
   Alert
 } from 'react-native';
 import {
-  Calendar,
-  ArrowRight,
   MapPin,
   CalendarPlus,
   Navigation,
@@ -30,9 +28,7 @@ import { mapDirection } from '../../../../utils/common_logic';
 import { useNavigation } from '@react-navigation/native';
 import { EmptySessionCard } from '../../../../components/molicules';
 
-import {
-  getFirestore,
-} from '@react-native-firebase/firestore';
+
 import { getAuth } from '@react-native-firebase/auth';
 import { getApp } from '@react-native-firebase/app';
 

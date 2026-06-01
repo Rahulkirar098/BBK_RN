@@ -41,7 +41,6 @@ const subscribeUserBookings = (
               data.timeStart?.toDate?.() || new Date(data.timeStart),
           };
         });
-
         callback(bookings);
       },
       error => {
